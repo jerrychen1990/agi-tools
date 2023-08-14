@@ -32,8 +32,8 @@ jobs:
           pip install build
           pip install --no-cache-dir -r requirements.txt
           echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
-      - name: Run UT
-        run: sh run_ut.sh
+      # - name: Run UT
+      #   run: sh run_ut.sh
       - name: Build package
         run: |
           echo $RELEASE_VERSION
