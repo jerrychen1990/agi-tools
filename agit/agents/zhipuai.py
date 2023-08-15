@@ -15,8 +15,7 @@ from snippets import get_batched_data
 
 from agit.utils import getlog
 
-env = os.environ.get("IM_ENV", "dev")
-logger = getlog(env, __name__)
+logger = getlog("dev", __name__)
 
 _HISTORY_PLACEHOLDER = '$HISTORY'
 
@@ -54,16 +53,21 @@ def build_history_str(history: List[str], history_tmplate) -> str:
     return rs
 
 
-class ZhipuAgent:
+class ZhipuAIAgent:
     def __init__(self, api_key=None) -> None:
         if api_key:
             zhipuai.api_key = api_key
         else:
             zhipuai.api_key = os.environ["ZHIPU_API_KEY"]
 
+    def update_kwargs(self, kwargs):
+        if "temperature" in kwargs:
+            kwargs["temperature"] = max(0.01, kwargs["temperature"])
+
     def __call__(self, prompt: str, history=[], model: str = "chatglm_lite", stream=True,
                  max_len=None, max_history_len=None, max_single_history_len=None,
                  history_template=None, **kwargs) -> Any:
+        self.update_kwargs(kwargs)
         if max_history_len:
             logger.debug(
                 f"history length:{len(history)}, cut to {max_history_len}")

@@ -10,7 +10,7 @@ import logging
 
 
 def getlog(env, name):
-    print(f"create logger with {env=}, {name=}")
+    # print(f"create logger with {env=}, {name=}")
     if env == "dev":
         logger = logging.getLogger(name)
         logger.propagate = False
