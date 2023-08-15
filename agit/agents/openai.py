@@ -29,12 +29,12 @@ class OpenAIAgent:
             openai.api_key = api_key
         elif "OPENAI_API_KEY" in os.environ:
             openai.api_key = os.environ["OPENAI_API_KEY"]
-            
+
     def _build_messages(self, prompt, history):
         messages = history + [dict(role="user", content=prompt)]
         return messages
 
-    def __call__(self, prompt, model,  history=[], stream=True) -> Any:
+    def __call__(self, prompt, model,  history=[], stream=True, **kwargs) -> Any:
         messages = self._build_messages(prompt, history)
         chunks = openai.ChatCompletion.create(
             model=model,
