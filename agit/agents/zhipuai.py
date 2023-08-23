@@ -41,7 +41,8 @@ def resp_generator(events, max_len=None):
         else:
             logger.error(
                 f"zhipu api resp failed with event:{event.event}, data:{event.data}")
-            yield event.data
+            yield "我们换个话题吧。"
+            # yield event.data
 
 
 def build_history_str(history: List[str], history_tmplate) -> str:
