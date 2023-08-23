@@ -8,6 +8,7 @@
 
 
 import os
+import sys
 from typing import Any, List
 
 import zhipuai
@@ -64,9 +65,17 @@ class ZhipuAIAgent:
         if "temperature" in kwargs:
             kwargs["temperature"] = max(0.01, kwargs["temperature"])
 
-    def __call__(self, prompt: str, history=[], model: str = "chatglm_lite", stream=True,
-                 max_len=None, max_history_len=None, max_single_history_len=None,
-                 history_template=None, **kwargs) -> Any:
+    def _add_system(self, system, content):
+        # print(f"check {system}")
+        if "{content}" in system:
+            return system.replace("{content}", content)
+        else:
+            return system + "\n" + content
+
+    def __call__(self, prompt: str, history=[], model: str = "chatglm_lite",
+                 system=None,
+                 stream=True, max_len=None, max_history_len=None,
+                 max_single_history_len=None, history_template=None, **kwargs) -> Any:
         self.update_kwargs(kwargs)
         if max_history_len:
             logger.debug(
@@ -87,6 +96,11 @@ class ZhipuAIAgent:
             zhipu_prompt = [dict(role="user", content=prompt)]
         else:
             zhipu_prompt = history + [dict(role="user", content=prompt)]
+            if system:
+                # 添加system到第一个history
+                logger.info("apply system to first history")
+                zhipu_prompt[0]["content"] = self._add_system(
+                    system, zhipu_prompt[0]["content"])
 
         total_words = sum([len(e['content']) for e in zhipu_prompt])
         logger.info(f"zhipu prompt:")
