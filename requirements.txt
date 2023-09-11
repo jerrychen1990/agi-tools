@@ -1,3 +1,5 @@
 zhipuai
 openai
 python_snippets
+click
+streamlit

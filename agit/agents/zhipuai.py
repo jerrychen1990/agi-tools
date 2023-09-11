@@ -125,3 +125,14 @@ class ZhipuAIAgent:
             if max_len:
                 resp = resp[:max_len]
             return resp
+
+    def embedding(self, prompt: str, model: str = "text_embedding"):
+        resp = zhipuai.model_api.invoke(
+            model=model,
+            prompt=prompt
+        )
+        if resp["code"] != 200:
+            raise Exception(resp["msg"])
+        embedding = resp["data"]["embedding"]
+
+        return embedding
