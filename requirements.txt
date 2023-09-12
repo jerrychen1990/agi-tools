@@ -3,3 +3,8 @@ openai
 python_snippets
 click
 streamlit
+scipy
+pandas
+html2text
+faiss-cpu
+langchain

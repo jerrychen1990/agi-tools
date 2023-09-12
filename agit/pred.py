@@ -12,7 +12,7 @@ from typing import List
 from snippets import batch_process
 from tqdm import tqdm
 
-from agit.zhipu import ZhipuAgent
+from agit.agents import ZhipuAgent
 
 
 def batch_predict(prompts: List[str], agent, params, work_num) -> List:
