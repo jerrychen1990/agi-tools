@@ -32,8 +32,8 @@ def load_view():
                                            value="{{content}}")
     temperature = st.sidebar.slider(key=f"{view_name}_temperature", label="temperature",
                                     min_value=0.01, max_value=1.0, value=0.9, step=0.01)
-    top_p = st.sidebar.slider(key=f"{view_name}_top_p", label="top_p", min_value=0.01,
-                              max_value=1.0, value=0.7, step=0.01)
+    top_p = st.sidebar.slider(key=f"{view_name}_top_p", label="top_p", min_value=0.1,
+                              max_value=0.9, value=0.7, step=0.1)
     multi_turn = st.sidebar.checkbox(
         key=f"{view_name}_multi_turn", label="是否开启多轮对话", value=False)
     if multi_turn:

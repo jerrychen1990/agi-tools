@@ -18,9 +18,14 @@ from setuptools import find_packages, setup
 REQ = [
     "python_snippets",
     "zhipuai",
-    "openai"
+    "openai",
+    "click",
+    "pandas",
+    "html2text",
+    "langchain",
+    "tiktoken"
+    
 ]
-
 
 def get_version(pkg_name):
     try:
