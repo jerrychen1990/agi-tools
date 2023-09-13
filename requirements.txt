@@ -8,3 +8,4 @@ pandas
 html2text
 faiss-cpu
 langchain
+tiktoken
