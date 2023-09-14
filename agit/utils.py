@@ -7,6 +7,9 @@
 '''
 
 import logging
+from typing import List
+
+import numpy as np
 
 
 def getlog(env, name):
@@ -42,3 +45,23 @@ def save_csv_xls(df, path):
         df.to_excel(path, index=False)
     else:
         raise Exception(f"Unknown file format: {path}")
+
+
+def cal_vec_similarity(vec1: List[float], vec2: List[float], normalize=True, metric="cosine"):
+    """
+    计算两个向量之间的相似度
+    :param vec1: 向量1
+    :param vec2: 向量2
+    :return: 相似度/距离
+    """
+    vec1 = np.array(vec1)
+    vec2 = np.array(vec2)
+    if normalize:
+        vec1 = vec1 / np.linalg.norm(vec1, ord=2)
+        vec2 = vec2 / np.linalg.norm(vec2, ord=2)
+    if metric == "cosine":
+        return np.dot(vec1, vec2) / (np.linalg.norm(vec1, 2) * np.linalg.norm(vec2, 2))
+    if metric == "l2_distance":
+        return np.linalg.norm((vec1-vec2), 2)
+    else:
+        raise Exception(f"Unknown metric: {metric}")

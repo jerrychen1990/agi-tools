@@ -13,6 +13,7 @@ import sys
 from typing import Any, List
 
 import zhipuai
+from cachetools import LRUCache, cached
 from snippets import get_batched_data
 
 from agit.utils import getlog
@@ -24,7 +25,7 @@ def check_api_key(api_key):
     if api_key is None:
         api_key = os.environ.get("ZHIPUAI_API_KEY", None)
     if not api_key:
-        raise ValueError("api_key is required")
+        raise ValueError("未设置api_key且未设置ZHIPUAI_API_KEY环境变量")
     zhipuai.api_key = api_key
 
 
@@ -128,6 +129,7 @@ def call_character_api(prompt: str, user_name, user_info, bot_name, bot_info,
         return resp
 
 
+@cached(LRUCache(maxsize=1000))
 def call_embedding_api(text: str, api_key=None):
     check_api_key(api_key)
     resp = zhipuai.model_api.invoke(

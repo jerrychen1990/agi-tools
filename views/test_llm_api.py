@@ -9,12 +9,17 @@
 import re
 import time
 
+from snippets.utils import jload
+
 from agit.backend.zhipuai_bk import call_llm_api
 from agit.utils import getlog
 
 logger = getlog("dev", __file__)
 
-model_cands = ["chatglm_lite", "chatglm_std", "chatglm_pro"]
+config = jload("/Users/chenhao/workspace/agi-tools/config/local_config.json")
+
+
+model_cands = config["models"]
 
 
 def load_view():

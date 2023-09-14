@@ -44,4 +44,5 @@ def call_llm_api(prompt, model="gpt-3.5-turbo-16k-0613",  history=[], stream=Tru
 
 if __name__ == "__main__":
     text = "你好"
-    call_llm_api(text)
+    resp = call_llm_api(text, stream=False)
+    print(resp)

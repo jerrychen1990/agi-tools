@@ -8,23 +8,25 @@
 
 import re
 import time
+from math import log
 
 import streamlit as st
 from streamlit_chat import message
 
 from agit.backend.zhipuai_bk import call_character_api
 from agit.utils import getlog
+from snippets.utils import jload
 
 logger = getlog("dev", __file__)
 
 
 def init():
     if not "past" in st.session_state:
+        logger.info("init past")
         st.session_state["past"] = []
     if not "generated" in st.session_state:
+        logger.info("init generated")
         st.session_state["generated"] = []
-    chat_placeholder = st.empty()
-
 
 
 def load_view():
@@ -49,21 +51,27 @@ def load_view():
             prompt, user_name, user_info, bot_name, bot_info, stream=False)
         cost = time.time() - start
         msg = f"{resp}[字数:{len(resp)}][cost:{cost:2.2f}s]"
-        st.info(msg)
+        # st.info(msg)
         st.session_state.generated.append(msg)
 
+    chat_placeholder = st.empty()
 
     with chat_placeholder.container():
         for i in range(len(st.session_state['generated'])):
-            print(i)
+            st.info(f"{user_name}:{st.session_state['past'][i]}")
+            st.info(f"{bot_name}:{st.session_state['generated'][i]}")
 
-            message(st.session_state['past'][i], is_user=True, key=f"{i}_user")
-            message(
-                st.session_state['generated'][i],
-                key=f"{i}",
-                allow_html=True
-            )
+            # message(
+            #     st.session_state['past'][i],
+            #         is_user=True,
+            #         key=f"{i}_user"
+            # )
+            # message(
+            #     st.session_state['generated'][i],
+            #     key=f"{i}",
+            #     allow_html=True
+            # )
 
     with st.container():
-        st.text_input("输入:", on_change=on_input_change, value="你好，你是谁？",
+        st.text_input(f"{user_name}:", on_change=on_input_change, value="你好，你是谁？",
                       key="user_input")

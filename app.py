@@ -93,7 +93,6 @@ navbar_component()
 
 def navigation():
     route = get_current_route()
-    logging.info(f"{route=}")
     view = _view_map.get(route, similarity)
     view.load_view()
 
