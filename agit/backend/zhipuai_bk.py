@@ -92,6 +92,42 @@ def call_llm_api(prompt: str, history=[], model: str = "chatglm_lite",
         return resp
 
 
+def call_character_api(prompt: str, user_name, user_info, bot_name, bot_info,
+                       history=[], model="characterglm", api_key=None, stream=True, max_len=None, **kwargs):
+    check_api_key(api_key)
+    zhipu_prompt = history + [dict(role="user", content=prompt)]
+    total_words = sum([len(e['content']) for e in zhipu_prompt])
+    logger.debug(f"zhipu prompt:")
+    detail_msgs = []
+
+    for idx, item in enumerate(zhipu_prompt):
+        detail_msgs.append(f"[{idx+1}].{item['role']}:{item['content']}")
+    logger.debug("\n"+"\n".join(detail_msgs))
+    logger.debug(
+        f"{model=},{kwargs=}, history_len={len(history)}, words_num={total_words}")
+    meta = {
+        "user_info": user_info,
+        "bot_info": bot_info,
+        "bot_name": bot_name,
+        "user_name": user_name
+    }
+    response = zhipuai.model_api.sse_invoke(
+        model=model,
+        meta=meta,
+        prompt=zhipu_prompt,
+        incremental=True,
+        ** kwargs
+    )
+    generator = resp_generator(response.events(), max_len=None)
+    if stream:
+        return generator
+    else:
+        resp = "".join(list(generator)).strip()
+        if max_len:
+            resp = resp[:max_len]
+        return resp
+
+
 def call_embedding_api(text: str, api_key=None):
     check_api_key(api_key)
     resp = zhipuai.model_api.invoke(

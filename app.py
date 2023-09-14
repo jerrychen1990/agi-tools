@@ -4,7 +4,7 @@ import logging
 import streamlit as st
 from streamlit.components.v1 import html
 
-from views import batch_llm, similarity, test_llm_api
+from views import batch_llm, character_chat, similarity, test_llm_api
 
 st.set_page_config(layout="wide", page_title='AI工具集合')
 st.set_option('deprecation.showPyplotGlobalUse', False)
@@ -13,13 +13,15 @@ st.set_option('deprecation.showPyplotGlobalUse', False)
 NAVBAR_PATHS = {
     '文本相似度': 'similarity',
     'api测试': 'test_llm_api',
-    "批量测试": 'batch_llm'
+    "批量测试": 'batch_llm',
+    "角色对话": "character_chat"
 
 }
 _view_map = {
     "similarity": similarity,
     "test_llm_api": test_llm_api,
-    "batch_llm": batch_llm
+    "batch_llm": batch_llm,
+    "character_chat": character_chat
 }
 
 

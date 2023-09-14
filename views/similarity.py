@@ -10,7 +10,7 @@ import re
 
 import streamlit as st
 
-from cal_text_similarity import sort_similarity
+from scripts.cal_text_similarity import sort_similarity
 
 
 def load_view():
