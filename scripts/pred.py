@@ -13,15 +13,13 @@ from snippets import batch_process
 from tqdm import tqdm
 
 
-
 def batch_predict(prompts: List[str], agent, params, work_num) -> List:
     batch_func = batch_process(work_num=work_num)(lambda x: agent(x, **params))
     return batch_func(prompts)
 
 
-if __name__ == "__main__":
-    prompts = ["你好", "你是谁", "谁是世界上最聪明的人"]
-    agent = ZhipuAgent()
-    rs = batch_predict(prompts, agent, dict(stream=False), 2)
-    for q, a in zip(prompts, rs):
-        print(f"{q} -> {a}")
+# if __name__ == "__main__":
+#     prompts = ["你好", "你是谁", "谁是世界上最聪明的人"]
+#     rs = batch_predict(prompts, agent, dict(stream=False), 2)
+#     for q, a in zip(prompts, rs):
+#         print(f"{q} -> {a}")
