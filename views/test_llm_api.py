@@ -6,24 +6,19 @@
 @Contact :   jerrychen1990@gmail.com
 '''
 
-import re
 import time
 
-from snippets.utils import jload
+import streamlit as st
 
 from agit.backend.zhipuai_bk import call_llm_api
 from agit.utils import getlog
+from views import ENV, model_cands
 
-logger = getlog("dev", __file__)
-
-config = jload("/Users/chenhao/workspace/agi-tools/config/local_config.json")
-
-
-model_cands = config["models"]
+logger = getlog(ENV, __file__)
 
 
 def load_view():
-    import streamlit as st
+
     prompt = st.sidebar.text_area("请求prompt", value="你好")
     prompt_template = st.sidebar.text_area(f"套在prompt上的模板,用{{content}}槽位表示",
                                            value="{{content}}")

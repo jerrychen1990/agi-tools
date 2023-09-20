@@ -10,3 +10,4 @@ faiss-cpu
 langchain
 tiktoken
 plotly
+streamlit_chat

@@ -1,0 +1,9 @@
+{
+  "models": [
+    "chatglm_lite",
+    "chatglm_lite_32k",
+    "chatglm_std",
+    "chatglm_pro",
+    "chatglm66b_nlu_0920"
+  ]
+}

@@ -1,0 +1,21 @@
+FROM python:3.10.12
+
+COPY requirements.txt ./requirements.txt
+RUN pip install -r ./requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple/ --trusted-host pypi.tuna.tsinghua.edu.cn
+
+COPY docker/init.sh /init.sh
+RUN bash init.sh
+
+ENV TZ=Asia/Shanghai
+ENV LOG_HOME="/logs"
+RUN mkdir -p ${LOG_HOME}
+
+ENV AGIT_CONFIG_HOME="/agi-tools/config"
+ENV AGIT_ENV="prod"
+ENV ZHIPUAI_API_KEY="3aeba2365174e850ba45417a16252a09.6gYmkzwLybkub5EW"
+
+
+COPY . /agi-tools
+WORKDIR /agi-tools
+
+CMD ["bash", "restart_app_docker.sh"]

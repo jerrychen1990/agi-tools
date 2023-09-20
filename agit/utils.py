@@ -7,6 +7,7 @@
 '''
 
 import logging
+import os
 from typing import List
 
 import numpy as np
@@ -14,7 +15,7 @@ import numpy as np
 
 def getlog(env, name):
     # print(f"create logger with {env=}, {name=}")
-    if env == "dev":
+    if env == "dev" or env == "local":
         logger = logging.getLogger(name)
         if name in logging.Logger.manager.loggerDict:
             return logger
@@ -65,3 +66,10 @@ def cal_vec_similarity(vec1: List[float], vec2: List[float], normalize=True, met
         return np.linalg.norm((vec1-vec2), 2)
     else:
         raise Exception(f"Unknown metric: {metric}")
+
+
+def get_config_path(config_name):
+    config_home = os.environ["AGIT_CONFIG_HOME"]
+    env = os.environ["AGIT_ENV"]
+    config_path = os.path.join(config_home, env, config_name)
+    return config_path
