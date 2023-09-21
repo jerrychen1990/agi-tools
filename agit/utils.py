@@ -11,6 +11,7 @@ import os
 from typing import List
 
 import numpy as np
+import pandas as pd
 
 
 def getlog(env, name):
@@ -44,6 +45,15 @@ def save_csv_xls(df, path):
         df.to_csv(path, index=False)
     elif path.endswith(".xlsx"):
         df.to_excel(path, index=False)
+    else:
+        raise Exception(f"Unknown file format: {path}")
+
+
+def read_csv_xls(path):
+    if path.endswith(".csv"):
+        return pd.read_csv(path)
+    elif path.endswith(".xlsx"):
+        return pd.read_excel(path)
     else:
         raise Exception(f"Unknown file format: {path}")
 

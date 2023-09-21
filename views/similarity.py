@@ -6,12 +6,10 @@
 @Contact :   jerrychen1990@gmail.com
 '''
 
-import re
 
 import plotly.graph_objects as go
 import streamlit as st
 from plotly.subplots import make_subplots
-from pyexpat import model
 
 from scripts.cal_text_similarity import sort_similarity
 

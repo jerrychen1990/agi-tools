@@ -11,13 +11,19 @@ import os
 from snippets import jload
 
 from agit.utils import get_config_path
-from views.common import load_chat_view
 
-config_path = get_config_path("config.json")
-config = jload(config_path)
-config_path = get_config_path("chatbot_config.json")
-chatbot_config = jload(config_path)
+# config_path = get_config_path("config.json")
+# config_path = get_config_path("chatbot_config.json")
+# chatbot_config = jload(config_path)
 
 ENV = os.environ.get("AGIT_ENV", "local")
 
-model_cands = config["models"]
+TMP_DIR = "/tmp/streamlit"
+if not os.path.exists(TMP_DIR):
+    os.makedirs(TMP_DIR)
+
+
+def get_key(key, config_name="config.json"):
+    config_path = get_config_path(config_name)
+    config = jload(config_path)
+    return config[key]

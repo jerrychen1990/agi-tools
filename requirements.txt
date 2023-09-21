@@ -11,3 +11,4 @@ langchain
 tiktoken
 plotly
 streamlit_chat
+openpyxl

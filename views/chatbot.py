@@ -6,7 +6,8 @@ import streamlit as st
 from snippets import jdumps
 
 from agit.utils import getlog
-from views import ENV, chatbot_config, load_chat_view, model_cands
+from views import ENV, get_key
+from views.common import load_chat_view
 
 logger = getlog(env=ENV, name=__name__)
 
@@ -66,7 +67,7 @@ def load_view():
 
     url = st.sidebar.selectbox(label="服务地址", options=hosts, index=0)
     model = st.sidebar.selectbox(
-        label="模型", options=chatbot_config["models"], index=0)
+        label="模型", options=get_key("models","chat_config"), index=0)
 
     temperature = st.sidebar.slider(
         label="温度", min_value=0.0, max_value=1.0, value=0.01, step=0.01)
