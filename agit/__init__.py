@@ -5,4 +5,8 @@
 @Author  :   ChenHao
 @Contact :   jerrychen1990@gmail.com
 '''
-__version__ = "0.0.8"
+import os
+
+__version__ = "0.1.0"
+AGIT_ENV = os.environ.get("AGIT_ENV", "local")
+AGIT_TEMP_DIR = os.environ.get("AGIT_TEMP_DIR", "/tmp")

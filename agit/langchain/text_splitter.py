@@ -9,6 +9,7 @@ import re
 from typing import List
 
 from langchain.text_splitter import TextSplitter
+from numpy import maximum
 from snippets import batchify, flat
 
 
@@ -46,19 +47,25 @@ def merge(pieces: list[str], joiner=",", min_len=10, max_len=100, overlap=0.3):
 
 
 class SmartTextSplitter(TextSplitter):
-    def __init__(self, split_pattern="[,，。?\？！!\n]|\.{3+}"):
+    def __init__(self, delimer="[,，。?\？！!\n]|\.{3+}", joiner=",", min_len=10, max_len=100, overlap=0.3):
         super().__init__()
-        self.split_pattern = split_pattern
+        self.delimer = delimer
+        self.joiner = joiner
+        self.min_len = min_len
+        self.max_len = max_len
+        self.overlap = overlap
 
-    def split_text(self, text: str, **kwargs) -> List[str]:
-        pieces = re.split(self.split_pattern, text)
+    def split_text(self, text: str) -> List[str]:
+        pieces = re.split(self.delimer, text)
         pieces = [e.strip() for e in pieces if e.strip()]
-        merged = merge(pieces,  **kwargs)
+        merged = merge(pieces, joiner=self.joiner, min_len=self.min_len,
+                       max_len=self.max_len, overlap=self.overlap)
         return merged
 
 
 if __name__ == "__main__":
     text = "你好，哈哈哈，这是一段很长很长很长很长很长很长很长很长很长很长很长很长很长很长的 文本呀，啦啦啦"
+    text = "wifi密码是智谱123456,办公地址是EFC英国中心T2 32楼"
     splitter = SmartTextSplitter()
     pieces = splitter.split_text(text, min_len=5, max_len=20, overlap=0.3)
     for p in pieces:

@@ -23,7 +23,6 @@ logger = getlog(os.environ.get("AGIT_ENV", "dev"), __name__)
 def load_chat_view(get_resp_func):
     if "messages" not in st.session_state:
         st.session_state.messages = []
-    st.session_state.setdefault("history", [])
 
     # Accept user input
     for message in st.session_state.messages:

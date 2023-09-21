@@ -9,6 +9,11 @@ import os
 
 import openai
 
+from agit import AGIT_ENV
+from agit.utils import getlog
+
+logger = getlog(AGIT_ENV, __name__)
+
 
 def check_api_key(api_key):
     if api_key is None:
@@ -25,12 +30,13 @@ def get_gen(chunks):
 
 
 def call_llm_api(prompt, model="gpt-3.5-turbo-16k-0613",  history=[], stream=True, **kwargs):
-
     def _build_messages(prompt, history):
         messages = history + [dict(role="user", content=prompt)]
         return messages
 
     messages = _build_messages(prompt, history)
+    logger.info(f"request to openai with {model=}")
+
     chunks = openai.ChatCompletion.create(
         model=model,
         messages=messages,

@@ -10,15 +10,16 @@
 import streamlit as st
 from snippets.utils import jload
 
-from agit.backend.zhipuai_bk import call_llm_api
+from agit.backend import call_llm_api
 from agit.utils import get_config_path
+from views import get_key
 from views.common import load_chat_view
 
 
 def load_view():
-    config_path = get_config_path("config.json")
-    config = jload(config_path)
-    model_cands = config["models"]
+    model_cands = get_key("models")
+    default_model = get_key("default_chat_model")
+    default_model_idx = model_cands.index(default_model)
 
     prompt_template = st.sidebar.text_area(key=f"prompt_template", label="套在prompt上的模板,用{{content}}槽位表示",
                                            value="{{content}}")
@@ -31,7 +32,12 @@ def load_view():
                                     min_value=0, max_value=10, value=5, step=1)
 
     model = st.sidebar.selectbox(
-        key=f"models", label="选择模型", options=model_cands)
+        key=f"models", label="选择模型", options=model_cands, index=default_model_idx)
+
+    clear = st.sidebar.button(key=f"clear", label="清空历史")
+    if clear:
+        st.info("历史已清空")
+        st.session_state.messages = []
 
     def get_resp(prompt):
         history = st.session_state.messages
