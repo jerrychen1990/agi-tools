@@ -2,13 +2,16 @@ zhipuai
 openai
 python_snippets
 click
-streamlit
 scipy
 pandas
 html2text
 faiss-cpu
 langchain
 tiktoken
+
+
+## web服务
+streamlit
 plotly
 streamlit_chat
 openpyxl

@@ -11,7 +11,7 @@ import time
 
 import pandas as pd
 import streamlit as st
-from snippets import get_current_time_str
+from snippets import batch_process, get_current_time_str
 from tqdm import tqdm
 
 from agit.utils import getlog, save_csv_xls
@@ -52,40 +52,62 @@ def load_chat_view(get_resp_func):
             {"role": "assistant", "content": full_response})
 
 
-def load_batch_view(get_resp_func):
+def load_batch_view(get_resp_func, workers=1, save_interval=20, overwrite=False):
+    def save_file():
+        dst_file_name = f"{stem}_{idx}_{len(records)}_{get_current_time_str('%Y%m%d%H%M%S')}.{surfix}"
+        dst_file_path = f"{TMP_DIR}/{dst_file_name}"
+        rs_df = pd.DataFrame.from_records(records)
+        logger.info(f"writing file to {dst_file_path}")
+        save_csv_xls(rs_df, dst_file_path)
+        with open(dst_file_path, "rb") as f:
+            byte_content = f.read()
+            st.download_button(label="下载文件", key=dst_file_name, data=byte_content,
+                               file_name=dst_file_name, mime="application/octet-stream")
+
     uploaded_file = st.file_uploader(
         label=f"上传文件，xlsx,csv类型，必须有一列名称是prompt", type=["xlsx", "csv"])
     submit = st.button(label='批量测试')
-    t = time.time()
+
     if submit:
         history = []
+        t = time.time()
         if uploaded_file.name.endswith(".csv"):
             df = pd.read_csv(uploaded_file)
         elif uploaded_file.name.endswith(".xlsx"):
             df = pd.read_excel(uploaded_file)
-        results = []
-        prompts = df['prompt'].tolist()
-        total = len(prompts)
-        for idx, prompt in tqdm(enumerate(prompts)):
-            rs_item = get_resp_func(prompt=prompt, history=history)
+        batch_func = batch_process(workers)(get_resp_func)
+        df.fillna("", inplace=True)
+        records = df.to_dict(orient="records")
 
-            results.append(rs_item)
-            cost = time.time() - t
-            avg_cost = cost / (idx + 1)
-            st.markdown(f"**第{idx + 1}条**")
-            st.markdown(f"**prompt**:{prompt}")
-            st.markdown(f"**resp**:{rs_item}")
-            st.markdown(
-                f"进度[{idx + 1} / {total}], 耗时{cost:2.2f}s, 平均单条耗时{avg_cost:2.2f}s, 预估剩余{avg_cost * (total - idx - 1):2.2f}s")
-            st.markdown("*" * 30)
-        st.markdown("任务完成")
-        rs_df = pd.DataFrame.from_records(results)
+        idx = 0
+        while not overwrite and idx < len(records) and records[idx].get("response"):
+            logger.info(records[idx].get("response"))
+            idx += 1
+
+        results = batch_func(records[idx:], history)
+
+        save_batch = max(4, len(records) // save_interval)
+        logger.info(idx)
+
+        st.info(
+            f"{len(records) - idx}个待处理条目,{workers}个并发,每{save_batch}条保存一次")
 
         stem, surfix = uploaded_file.name.split(".")
-        dst_file_name = f"{stem}_{get_current_time_str('%Y%m%d%H%M%S')}.{surfix}"
-        st.info(f"writing file to {dst_file_name}")
-        dst_file_path = f"{TMP_DIR}/{dst_file_name}"
-        save_csv_xls(rs_df, dst_file_path)
-        with open(dst_file_path) as f:
-            download = st.download_button(
-                "下载文件", data=f, file_name=dst_file_name)
+
+        # progress_detail = st.empty()
+        for item in results:
+            # item = results[idx]
+            idx += 1
+
+            cost = time.time() - t
+            pct = (idx)/len(records)
+            text = f"{cost/idx:.2f}s/item, [{idx}/{len(records)}], [{cost:.2f}s/{cost/pct:.2f}s]"
+            st.progress(value=pct, text=text)
+            for k, v in item.items():
+                st.info(f"{k}:{v}")
+            if idx % save_batch == 0:
+                save_file()
+
+        if idx % save_batch != 0:
+            save_file()
+        st.markdown("任务完成")

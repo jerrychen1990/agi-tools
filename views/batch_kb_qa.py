@@ -23,18 +23,29 @@ def load_view():
     knowledge_base_id = st.sidebar.selectbox(
         key=f"kbs", label="选择知识库", options=kbs)
     prompt_template = st.sidebar.text_area(
-        lalbe="知识库模板", height=400, value=get_key("prompt_template", "kb_config.json"))
+        label="知识库模板", height=400, value=get_key("prompt_template", "kb_config.json"))
+    work_num = st.sidebar.number_input(
+        key="work_num", label="并发数", min_value=1, max_value=10, value=1, step=1)
 
-    def get_resp_func(prompt, history):
+    def get_resp_func(item, history):
+        prompt = item["prompt"]
+        resp = ""
+        try:
+            json_data = {
+                'knowledge_base_id': knowledge_base_id,
+                'question': prompt,
+                "prompt_template": prompt_template,
+                'history': history,
+            }
+            resp = requests.post(f'{host}/local_doc_chat', json=json_data)
+            resp.raise_for_status()
+            resp = resp.json()
+            response = resp["response"]
+            reference = resp["source_documents"]
+            item.update(response=response, reference=reference,
+                        settings=dict(host=host, knowledge_base_id=knowledge_base_id))
+        except Exception as e:
+            logger.exception(e)
+        return dict(prompt=prompt, response=response)
 
-        json_data = {
-            'knowledge_base_id': knowledge_base_id,
-            'question': prompt,
-            "prompt_template": prompt_template,
-            'history': history,
-        }
-        resp = requests.post(f'{host}/local_doc_chat', json=json_data)
-        rs_item = dict(prompt=prompt, response=resp,
-                       settings=dict(host=host, knowledge_base_id=knowledge_base_id))
-        return rs_item
-    load_batch_view(get_resp_func=get_resp_func)
+    load_batch_view(get_resp_func=get_resp_func, workers=work_num)

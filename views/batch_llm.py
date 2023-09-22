@@ -9,8 +9,11 @@
 import streamlit as st
 
 from agit.backend.zhipuai_bk import call_llm_api
-from views import get_key
+from agit.utils import getlog
+from views import ENV, get_key
 from views.common import load_batch_view
+
+logger = getlog(ENV, __name__)
 
 
 def load_view():
@@ -30,18 +33,29 @@ def load_view():
 
     model = st.sidebar.selectbox(
         key=f"models", label="选择模型", options=get_key("models"))
+    work_num = st.sidebar.number_input(
+        key="work_num", label="并发数", min_value=1, max_value=10, value=1, step=1)
 
-    def get_resp_func(prompt, history):
-        prompt_with_template = prompt_template.replace("{{content}}", prompt)
-        history_start = max(0, len(history) - 2*history_len)
-        resp = call_llm_api(
-            prompt=prompt_with_template, history=history[history_start:], temperature=temperature, top_p=top_p, model=model, stream=False)
+    def get_resp_func(item, history):
+        prompt = item["prompt"]
+        resp = ""
+        try:
+            prompt_with_template = prompt_template.replace(
+                "{{content}}", prompt)
+            history_start = max(0, len(history) - 2*history_len)
+            resp = call_llm_api(
+                prompt=prompt_with_template, history=history[history_start:], temperature=temperature, top_p=top_p, model=model, stream=False)
+            item.update(prompt=prompt, prompt_with_template=prompt_with_template, response=resp,
+                        settings=dict(temperature=temperature, top_p=top_p, model=model))
+            history.extend([dict(role="user", content=prompt),
+                            dict(role="assistant", content=resp)])
+            # st.info(prompt)
+            # st.info(resp)
+        except Exception as e:
+            logger.exception(e)
+        return dict(prompt=prompt, response=resp)
 
-        rs_item = dict(prompt=prompt, prompt_with_template=prompt_with_template, response=resp,
-                       settings=dict(temperature=temperature, top_p=top_p, model=model))
-        history.extend([dict(role="user", content=prompt),
-                       dict(role="assistant", content=resp)])
-
-        return rs_item
-
-    load_batch_view(get_resp_func=get_resp_func)
+    if work_num > 1 and history_len:
+        st.warning("多轮对话时，并发数不能大于1")
+    else:
+        load_batch_view(get_resp_func=get_resp_func, workers=work_num)
