@@ -3,8 +3,10 @@ FROM python:3.10.12
 COPY requirements.txt ./requirements.txt
 RUN pip install -r ./requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple/ --trusted-host pypi.tuna.tsinghua.edu.cn
 
+ADD docker/sources.list /etc/apt/sources.list
+
 COPY docker/init.sh /init.sh
-RUN bash init.sh
+RUN bash /init.sh
 
 ENV TZ=Asia/Shanghai
 ENV LOG_HOME="/logs"
