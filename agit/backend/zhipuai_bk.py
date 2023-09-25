@@ -12,8 +12,10 @@ import os
 import sys
 from typing import Any, List
 
+import numpy as np
 import zhipuai
 from cachetools import LRUCache, cached
+from retry_helper import RetryManager
 from snippets import get_batched_data
 
 from agit.utils import getlog
@@ -130,16 +132,21 @@ def call_character_api(prompt: str, user_name, user_info, bot_name, bot_info,
 
 
 @cached(LRUCache(maxsize=1000))
-def call_embedding_api(text: str, api_key=None):
+def call_embedding_api(text: str, api_key=None, norm=None, max_attempts=3, wait_seconds=1):
     check_api_key(api_key)
-    resp = zhipuai.model_api.invoke(
-        model="text_embedding",
-        prompt=text
-    )
-    if resp["code"] != 200:
-        raise Exception(resp["msg"])
-    embedding = resp["data"]["embedding"]
-    return embedding
+    with RetryManager(max_attempts=max_attempts, wait_seconds=wait_seconds) as retry:
+        while retry:
+            with retry.attempt:
+                resp = zhipuai.model_api.invoke(
+                    model="text_embedding",
+                    prompt=text
+                )
+                if resp["code"] != 200:
+                    raise Exception(resp["msg"])
+                embedding = resp["data"]["embedding"]
+                if norm is not None:
+                    embedding = embedding / np.linalg.norm(embedding, norm)
+                return embedding
 
 
 if __name__ == "__main__":

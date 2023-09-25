@@ -15,13 +15,15 @@ logger = logging.getLogger(__name__)
 
 
 class SmartDocumentLoader(BaseLoader):
-    def __init__(self, file_path: str):
+    def __init__(self, file_path: str, max_page=None):
         self.read_func = {
             "html": self.read_html,
             "htm": self.read_html,
             "txt": self.read_text,
+            "pdf": self.read_pdf
         }
         self.file_path = file_path
+        self.max_page = max_page
 
     def read_text(self, path: str) -> str:
         with open(path, "r", encoding="utf-8") as f:
@@ -37,6 +39,27 @@ class SmartDocumentLoader(BaseLoader):
         h.mark_code = True
         text = h.handle(content)
         return text
+    
+    def read_pdf(self, path:str) -> str:
+        import PyPDF2
+        with open(path, "rb") as f:
+            pdf_reader = PyPDF2.PdfReader(f)
+            logger.debug(f"got {len(pdf_reader.pages)} pages")
+            pages = pdf_reader.pages
+            if self.max_page:
+                pages = pages[:self.max_page]
+            rs = ""    
+            for page in pages:
+                rs+=page.extract_text()
+            
+        return rs
+
+
+        
+
+
+        
+
 
     def load(self):
         surfix = self.file_path.split(".")[-1]

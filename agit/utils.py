@@ -6,6 +6,7 @@
 @Contact :   jerrychen1990@gmail.com
 '''
 
+from ctypes import Union
 import logging
 import os
 from typing import List
@@ -88,3 +89,18 @@ def get_config_path(config_name):
 
 def get_config(config_name):
     return jload(get_config_path(config_name))
+
+
+
+class ConfigMixin:
+    @classmethod
+    def from_config(cls, config:Union[dict, str])
+        if isinstance(config, str):
+                if config.endswith(".json"):
+                    config = jload(config)
+                else:
+                    raise ValueError(f"{config} is not a valid config file")
+        instance = cls(**config)
+        return instance
+        
+    
