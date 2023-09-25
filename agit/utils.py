@@ -6,14 +6,13 @@
 @Contact :   jerrychen1990@gmail.com
 '''
 
-from ctypes import Union
 import logging
 import os
-from typing import List
-from snippets import jload
+from typing import List, Union
 
 import numpy as np
 import pandas as pd
+from snippets import jload
 
 
 def getlog(env, name):
@@ -94,7 +93,7 @@ def get_config(config_name):
 
 class ConfigMixin:
     @classmethod
-    def from_config(cls, config:Union[dict, str])
+    def from_config(cls, config:Union[dict, str]):
         if isinstance(config, str):
                 if config.endswith(".json"):
                     config = jload(config)
