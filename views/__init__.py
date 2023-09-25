@@ -21,6 +21,7 @@ ENV = os.environ.get("AGIT_ENV", "local")
 TMP_DIR = "/tmp/streamlit"
 if not os.path.exists(TMP_DIR):
     os.makedirs(TMP_DIR)
+    
 
 
 def get_key(key, config_name="config.json"):

@@ -5,11 +5,11 @@ import requests
 import streamlit as st
 from snippets import jdumps, jload
 
-from agit.utils import getlog, get_config_path
-from views import ENV, get_key
+from agit import AGIT_ENV
+from agit.utils import get_config, getlog
 from views.common import load_chat_view
 
-logger = getlog(env=ENV, name=__name__)
+logger = getlog(env=AGIT_ENV, name=__name__)
 
 
 def refresh_session():
@@ -63,19 +63,16 @@ def gen_with_job_id(job_id, url,  version, detail=False):
 
 
 def load_view():
-    hosts = ["https://langchain.bigmodel.cn/im_chat/chat",
-             "http://192.168.110.132:5001/chat"]
+    chatbot_config = get_config("chatbot_config.json")
+    
+    hosts = chatbot_config["hosts"]
 
-    characters = ["车载助手", "女友", "孔子"]
-
-    chatbot_config = jload(get_config_path("chatbot_config.json"))
-
+    characters = list(chatbot_config["characters"].keys())
     # st.title("ChatBot")
 
     url = st.sidebar.selectbox(label="服务地址", options=hosts, index=0)
     model = st.sidebar.selectbox(
-        label="模型", options=get_key("models","chatbot_config.json"), index=0)
-
+        label="模型", options=chatbot_config["models"], index=0)
     temperature = st.sidebar.slider(
         label="温度", min_value=0.0, max_value=1.0, value=0.01, step=0.01)
 

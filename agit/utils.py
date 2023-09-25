@@ -9,6 +9,7 @@
 import logging
 import os
 from typing import List
+from snippets import jload
 
 import numpy as np
 import pandas as pd
@@ -83,3 +84,7 @@ def get_config_path(config_name):
     env = os.environ["AGIT_ENV"]
     config_path = os.path.join(config_home, env, config_name)
     return config_path
+
+
+def get_config(config_name):
+    return jload(get_config_path(config_name))
