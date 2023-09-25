@@ -1,3 +1,4 @@
 {
-  "models": ["chatglm_lite_32k", "chatglm_std", "chatglm_pro"]
+  "models": ["chatglm_lite_32k", "chatglm_std", "chatglm_pro"],
+  "default_chat_model": "chatglm_lite_32k"
 }

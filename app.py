@@ -3,7 +3,7 @@ import logging
 import streamlit as st
 
 from views import (batch_kb_qa, batch_llm, character_chat, chatbot, model_chat,
-                   similarity, test_llm_api)
+                   similarity, test_llm_api, batch_chatbot)
 
 st.set_page_config(layout="wide", page_title='AI工具集合')
 # st.set_option('deprecation.showPyplotGlobalUse', False)
@@ -16,7 +16,8 @@ NAVBAR_PATHS = {
     "角色对话": "character_chat",
     "聊天机器人": "chatbot",
     "模型对话": "model_chat",
-    "批量知识库问答": "batch_kb_qa"
+    "批量知识库问答": "batch_kb_qa",
+    "批量测试聊天机器人": "batch_chatbot"
 
 }
 _view_map = {
@@ -26,7 +27,8 @@ _view_map = {
     "character_chat": character_chat,
     "chatbot": chatbot,
     "model_chat": model_chat,
-    "batch_kb_qa": batch_kb_qa
+    "batch_kb_qa": batch_kb_qa,
+    "batch_chatbot":batch_chatbot
 }
 
 

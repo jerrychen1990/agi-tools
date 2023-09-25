@@ -44,6 +44,7 @@ def load_chat_view(get_resp_func):
         resp = get_resp_func(prompt)
         for token in resp:
             full_response += token
+            # st.info(full_response)
             message_placeholder.markdown(full_response + "▌")
         message_placeholder.markdown(full_response)
         st.session_state.messages.append(

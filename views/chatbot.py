@@ -3,9 +3,9 @@ import uuid
 
 import requests
 import streamlit as st
-from snippets import jdumps
+from snippets import jdumps, jload
 
-from agit.utils import getlog
+from agit.utils import getlog, get_config_path
 from views import ENV, get_key
 from views.common import load_chat_view
 
@@ -25,7 +25,7 @@ def get_session_id():
     return st.session_state["session_id"]
 
 
-def gen_with_job_id(job_id, url, detail=False):
+def gen_with_job_id(job_id, url,  version, detail=False):
     start = time.time()
 
     url = url+"/get_resp"
@@ -37,16 +37,21 @@ def gen_with_job_id(job_id, url, detail=False):
 
     while idx <= max_round:
         resp = requests.post(url=url, json=req)
-        logger.info(f"resp of {job_id=} is {resp.json()}")
+        logger.info(f"resp of {url=} {job_id=} is {resp.json()}")
         resp = resp.json()["data"]
-        intents = resp["intents"]
+        if version == "v2":
+            intents = resp["intents"]
+        else:
+            intents = []
         content = resp["resp"]
+        content = content.strip()
         status = resp["status"]
-        if status != "PENDING":
-            if not first_token_cost and content.strip():
-                first_token_cost = time.time() - start
-            total_words += len(content)
-            yield content
+        # if status != "PENDING":
+        if not first_token_cost and content:
+            first_token_cost = time.time() - start
+        total_words += len(content)
+        logger.info(content)
+        yield content
         if status in ("FINISHED", "FAILED"):
             break
         idx += 1
@@ -58,22 +63,31 @@ def gen_with_job_id(job_id, url, detail=False):
 
 
 def load_view():
-    hosts = ["https://langchain.bigmodel.cn/im_chat/v2/chat",
-             "http://127.0.0.1:5001/chat"]
+    hosts = ["https://langchain.bigmodel.cn/im_chat/chat",
+             "http://192.168.110.132:5001/chat"]
 
     characters = ["车载助手", "女友", "孔子"]
+
+    chatbot_config = jload(get_config_path("chatbot_config.json"))
 
     # st.title("ChatBot")
 
     url = st.sidebar.selectbox(label="服务地址", options=hosts, index=0)
     model = st.sidebar.selectbox(
-        label="模型", options=get_key("models","chat_config"), index=0)
+        label="模型", options=get_key("models","chatbot_config.json"), index=0)
 
     temperature = st.sidebar.slider(
         label="温度", min_value=0.0, max_value=1.0, value=0.01, step=0.01)
 
     character = st.sidebar.selectbox(
         label="人设", options=characters, index=0)
+    
+    version = st.sidebar.selectbox("版本", ["v1","v2"], index=0)
+    clear = st.sidebar.button("清空历史")
+    if clear:
+        refresh_session()
+        st.session_state.messages = []
+    
 
     # 设置控制栏
     # 是否自定义模板
@@ -109,21 +123,19 @@ def load_view():
             "character": character,
             "user_config": build_user_config()
         }
-
-        create_url = url+"/create"
-
+        
+        base_url = url
+        if version == "v2":
+            base_url = base_url.replace("im_chat", "im_chat/v2")
+            
+            
+        create_url = base_url+"/create"
         logger.info(f"request to {create_url=} with data:\n{jdumps(data)}")
         resp = requests.post(url=create_url, json=data)
-        logger.info(f"response from {create_url=}:\n{jdumps(resp.json())}")
+        
+        logger.info(f"response from {base_url=}:\n{jdumps(resp.json())}")
         job_id = resp.json()["data"]["job_id"]
-        resp_gen = gen_with_job_id(job_id=job_id, url=url, detail=True)
-
+        resp_gen = gen_with_job_id(job_id=job_id, url=base_url, detail=True, version=version)
         return resp_gen
-
-        # resp = resp.json()["data"]
-        # intents = resp["intents"]
-        # st.info(intents)
-        # content = (e for e in resp["resp"])
-        # return content
 
     load_chat_view(get_resp_func=get_resp)
