@@ -9,14 +9,12 @@
 
 import logging
 import os
-import sys
-from typing import Any, List
+from typing import Any
 
 import numpy as np
 import zhipuai
 from cachetools import LRUCache, cached
 from retry_helper import RetryManager
-from snippets import get_batched_data
 
 from agit.utils import getlog
 

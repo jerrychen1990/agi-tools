@@ -27,3 +27,4 @@ class ZhipuAIEmbeddings(BaseModel, Embeddings):
     def embed_query(self, text: str) -> List[float]:
         emb = call_embedding_api(text)
         return emb
+    

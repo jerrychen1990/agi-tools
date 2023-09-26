@@ -6,17 +6,18 @@
 @Contact :   jerrychen1990@gmail.com
 '''
 
+import uuid
 from json import dumps
+
 import requests
+import streamlit as st
 from scipy.fftpack import ss_diff
 from snippets import jdumps, jload
-import streamlit as st
 
 from agit.backend.zhipuai_bk import call_llm_api
-from agit.utils import getlog,get_config_path
+from agit.utils import get_config_path, getlog
 from views import ENV, get_key
 from views.common import load_batch_view
-import uuid
 
 logger = getlog(ENV, __name__)
 
@@ -57,7 +58,7 @@ def load_view():
 
     if test_mode:
         prompt_template = st.sidebar.text_area(label="prompt模板", value = default_prompt_template, height=400)
-        context = st.sidebar.text_area(label="环境", value = default_context, height=300)
+        # context = st.sidebar.text_area(label="环境", value = default_context, height=300)
         zhushou = st.sidebar.text_area(label="车载助手", value = default_characters["车载助手"], height=300)
         nvyou = st.sidebar.text_area(label="女友", value = default_characters["女友"], height=300)
         kongzi = st.sidebar.text_area(label="孔子", value = default_characters["孔子"], height=300)
@@ -68,7 +69,6 @@ def load_view():
         if test_mode:
             return {
                 "prompt_template": prompt_template,
-                "context": context,
                 "characters":{
                     "车载助手": zhushou,
                     "女友": nvyou,
@@ -90,6 +90,10 @@ def load_view():
                 "session_id": session_id,
                 "params": {
                     "temperature": temperature,
+                },
+                "context":{
+                    "lon":121.65187,
+                    "lat":31.25092
                 },
                 "character": character,
                 "user_config": build_user_config()

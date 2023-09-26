@@ -92,8 +92,8 @@ def load_view():
     if test_mode:
         prompt_template = st.sidebar.text_area(
             label="prompt模板", value=chatbot_config["prompt_template"], height=400)
-        context = st.sidebar.text_area(
-            label="context", value=chatbot_config["context"], height=150)
+        # context = st.sidebar.text_area(
+        #     label="context", value=chatbot_config["context"], height=150)
         for c in characters:
             chatbot_config["characters"][c] = st.sidebar.text_area(
                 f"{c}的人设描述", chatbot_config["characters"][c], height=80)
@@ -103,7 +103,6 @@ def load_view():
             return {
                 "prompt_template": prompt_template,
                 "characters": chatbot_config["characters"],
-                "context": context
             }
         else:
             return {}
@@ -114,6 +113,10 @@ def load_view():
             "prompt": prompt,
             "session_id": session_id,
             "model": model,
+            "context":{
+                    "lon":121.65187,
+                    "lat":31.25092
+                },
             "params": {
                 "temperature": temperature,
             },
