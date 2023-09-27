@@ -14,6 +14,7 @@ import os
 import sys
 
 from setuptools import find_packages, setup
+from snippets import get_latest_version, get_next_version
 
 REQ = [
     "python_snippets",
@@ -24,8 +25,8 @@ REQ = [
     "html2text",
     "langchain",
     "tiktoken"
-    
 ]
+
 
 def get_version(pkg_name):
     try:
@@ -42,16 +43,18 @@ def get_version(pkg_name):
 
 
 if __name__ == "__main__":
-    print(sys.argv)
+    # print(sys.argv)
+    name = "agit"
+
     if len(sys.argv) >= 4 and sys.argv[-1].startswith("v"):
         version = sys.argv.pop(-1)
     else:
-        version = get_version("snippets")
-        version = ".".join([str(e) for e in version])
+        latest_version = get_latest_version(name)
+        version = get_next_version(latest_version)
     print(f"version: {version}")
 
     setup(
-        name='agit',
+        name=name,
         version=version,
         install_requires=REQ,
         packages=find_packages(exclude=['tests*']),

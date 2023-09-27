@@ -25,17 +25,16 @@ def get_session_id():
     return st.session_state["session_id"]
 
 
-def gen_with_job_id(job_id, url,  version, detail=False):
+def gen_with_job_id(job_id, url,  version, detail=False, timeout=30, interval=0.1):
     start = time.time()
 
     url = url+"/get_resp"
     req = dict(job_id=job_id)
-    max_round = 100
-    idx = 0
-    first_token_cost = None
+    first_token_cost = 0
     total_words = 0
+    total_cost = 0
 
-    while idx <= max_round:
+    while True:
         resp = requests.post(url=url, json=req)
         logger.info(f"resp of {url=} {job_id=} is {resp.json()}")
         resp = resp.json()["data"]
@@ -50,23 +49,24 @@ def gen_with_job_id(job_id, url,  version, detail=False):
         if not first_token_cost and content:
             first_token_cost = time.time() - start
         total_words += len(content)
-        logger.info(content)
+        logger.info(f"new content: {content}")
         yield content
+        total_cost = time.time() - start
+        if total_cost >= timeout:
+            yield "请求超时"
+            break
         if status in ("FINISHED", "FAILED"):
             break
-        idx += 1
-        # time.sleep(0.1)
+        time.sleep(interval)
+
     yield f"\n\n intents:{jdumps(intents)}"
-    total_cost= time.time() - start
     if detail:
         st.info(f"{first_token_cost=:2.3f}s, {total_cost=:2.3f}s, {total_words=}")
 
 
 def load_view():
     chatbot_config = get_config("chatbot_config.json")
-    
     hosts = chatbot_config["hosts"]
-
     characters = list(chatbot_config["characters"].keys())
     # st.title("ChatBot")
 
@@ -78,13 +78,12 @@ def load_view():
 
     character = st.sidebar.selectbox(
         label="人设", options=characters, index=0)
-    
-    version = st.sidebar.selectbox("版本", ["v1","v2"], index=0)
+
+    version = st.sidebar.selectbox("版本", ["v1", "v2"], index=0)
     clear = st.sidebar.button("清空历史")
     if clear:
         refresh_session()
         st.session_state.messages = []
-    
 
     # 设置控制栏
     # 是否自定义模板
@@ -113,30 +112,34 @@ def load_view():
             "prompt": prompt,
             "session_id": session_id,
             "model": model,
-            "context":{
-                    "lon":121.65187,
-                    "lat":31.25092
-                },
+            "context": {
+                "lon": 121.65187,
+                "lat": 31.25092
+            },
             "params": {
                 "temperature": temperature,
             },
             "character": character,
             "user_config": build_user_config()
         }
-        
+
         base_url = url
         if version == "v2":
             base_url = base_url.replace("im_chat", "im_chat/v2")
-            
+
         try:
             create_url = base_url+"/create"
             logger.info(f"request to {create_url=} with data:\n{jdumps(data)}")
             resp = requests.post(url=create_url, json=data)
             resp.raise_for_status()
-            
+
             logger.info(f"response from {base_url=}:\n{jdumps(resp.json())}")
             job_id = resp.json()["data"]["job_id"]
-            resp_gen = gen_with_job_id(job_id=job_id, url=base_url, detail=True, version=version)
+            interval = chatbot_config["interval"]
+            timeout = chatbot_config["timeout"]
+
+            resp_gen = gen_with_job_id(
+                job_id=job_id, url=base_url, detail=True, version=version, interval=interval, timeout=timeout)
         except Exception as e:
             logger.exception(e)
             return (e for e in "接口错误")
