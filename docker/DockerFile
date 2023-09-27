@@ -22,4 +22,4 @@ RUN pip install -r ./requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simpl
 COPY . /agi-tools
 WORKDIR /agi-tools
 
-ENTRYPOINT ["streamlit run app.py --server.port 8501 --logger.level=debug 2>&1 | tee $LOG_HOME/st_tool.log"]
+CMD ["bash restart_app.sh"]
