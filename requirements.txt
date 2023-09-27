@@ -8,7 +8,7 @@ html2text
 faiss-cpu
 langchain
 tiktoken
-
+retry_helper
 
 ## web服务
 streamlit

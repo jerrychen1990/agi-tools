@@ -128,14 +128,18 @@ def load_view():
         if version == "v2":
             base_url = base_url.replace("im_chat", "im_chat/v2")
             
+        try:
+            create_url = base_url+"/create"
+            logger.info(f"request to {create_url=} with data:\n{jdumps(data)}")
+            resp = requests.post(url=create_url, json=data)
+            resp.raise_for_status()
             
-        create_url = base_url+"/create"
-        logger.info(f"request to {create_url=} with data:\n{jdumps(data)}")
-        resp = requests.post(url=create_url, json=data)
-        
-        logger.info(f"response from {base_url=}:\n{jdumps(resp.json())}")
-        job_id = resp.json()["data"]["job_id"]
-        resp_gen = gen_with_job_id(job_id=job_id, url=base_url, detail=True, version=version)
+            logger.info(f"response from {base_url=}:\n{jdumps(resp.json())}")
+            job_id = resp.json()["data"]["job_id"]
+            resp_gen = gen_with_job_id(job_id=job_id, url=base_url, detail=True, version=version)
+        except Exception as e:
+            logger.exception(e)
+            return (e for e in "接口错误")
         return resp_gen
 
     load_chat_view(get_resp_func=get_resp)
