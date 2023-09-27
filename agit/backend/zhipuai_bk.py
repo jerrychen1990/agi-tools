@@ -14,7 +14,7 @@ from typing import Any
 import numpy as np
 import zhipuai
 from cachetools import LRUCache, cached
-from retry_helper import RetryManager
+from snippets import retry
 
 from agit.utils import getlog
 
@@ -52,10 +52,10 @@ def resp_generator(events, max_len=None, err_resp=None):
             yield err_resp if err_resp else event.data
 
 
-def call_llm_api(prompt: str, history=[], model: str = "chatglm_lite",
+# sdk请求模型
+def call_llm_api(prompt: str, model: str, history=[],
                  api_key=None, stream=True, max_len=None, max_history_len=None,
-                 verbose=logging.INFO,
-                 max_single_history_len=None, **kwargs) -> Any:
+                 verbose=logging.INFO, max_single_history_len=None, **kwargs) -> Any:
     check_api_key(api_key)
     logger.setLevel(verbose)
 
@@ -130,21 +130,24 @@ def call_character_api(prompt: str, user_name, user_info, bot_name, bot_info,
 
 
 @cached(LRUCache(maxsize=1000))
-def call_embedding_api(text: str, api_key=None, norm=None, max_attempts=3, wait_seconds=1):
+def call_embedding_api(text: str, api_key=None, norm=None, retry_num=2, wait_time=1):
     check_api_key(api_key)
-    with RetryManager(max_attempts=max_attempts, wait_seconds=wait_seconds) as retry:
-        while retry:
-            with retry.attempt:
-                resp = zhipuai.model_api.invoke(
-                    model="text_embedding",
-                    prompt=text
-                )
-                if resp["code"] != 200:
-                    raise Exception(resp["msg"])
-                embedding = resp["data"]["embedding"]
-                if norm is not None:
-                    embedding = embedding / np.linalg.norm(embedding, norm)
-                return embedding
+
+    def attempt():
+        resp = zhipuai.model_api.invoke(
+            model="text_embedding",
+            prompt=text
+        )
+        if resp["code"] != 200:
+            raise Exception(resp["msg"])
+        embedding = resp["data"]["embedding"]
+        if norm is not None:
+            embedding = embedding / np.linalg.norm(embedding, norm)
+        return embedding
+
+    if retry_num:
+        attempt = retry(retry_num=retry_num, wait_time=wait_time)(attempt)
+    return attempt()
 
 
 if __name__ == "__main__":

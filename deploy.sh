@@ -14,5 +14,6 @@ cmd="sudo docker run -idt -p8501:8501 -v ./config:/config -v ./logs:/logs  $targ
 echo $cmd
 eval $cmd
 echo "done"
+tail -f ./logs/st_tool.log
 
 

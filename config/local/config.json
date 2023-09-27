@@ -11,11 +11,11 @@
     "模型对话": "model_chat"
   },
 
- 
   "models": [
     "chatglm_lite",
     "chatglm_std",
     "chatglm_pro",
+    "chatglm_66b_test01",
     "gpt-3.5-turbo-0301"
   ],
   "default_chat_model": "gpt-3.5-turbo-0301"

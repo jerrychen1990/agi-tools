@@ -118,6 +118,7 @@ def load_view():
             },
             "params": {
                 "temperature": temperature,
+                "model": model
             },
             "character": character,
             "user_config": build_user_config()
