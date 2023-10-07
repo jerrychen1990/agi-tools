@@ -8,10 +8,12 @@
 
 import os
 import time
+from math import log
 
 import pandas as pd
+import requests
 import streamlit as st
-from snippets import batch_process, get_current_time_str
+from snippets import batch_process, get_current_time_str, jdump, jdumps, jloads
 from tqdm import tqdm
 
 from agit.utils import getlog, save_csv_xls
@@ -65,12 +67,14 @@ def load_batch_view(get_resp_func, workers=1, save_interval=20, overwrite=False)
             st.download_button(label="下载文件", key=dst_file_name, data=byte_content,
                                file_name=dst_file_name, mime="application/octet-stream")
 
+    memory = dict()
+
     uploaded_file = st.file_uploader(
         label=f"上传文件，xlsx,csv类型，必须有一列名称是prompt", type=["xlsx", "csv"])
     submit = st.button(label='批量测试')
 
     if submit:
-        history = []
+        memory["history"] = []
         t = time.time()
         if uploaded_file.name.endswith(".csv"):
             df = pd.read_csv(uploaded_file)
@@ -85,11 +89,9 @@ def load_batch_view(get_resp_func, workers=1, save_interval=20, overwrite=False)
             logger.info(records[idx].get("response"))
             idx += 1
 
-        results = batch_func(records[idx:], history)
+        results = batch_func(records[idx:], memory=memory)
 
         save_batch = max(4, len(records) // save_interval)
-        logger.info(idx)
-
         st.info(
             f"{len(records) - idx}个待处理条目,{workers}个并发,每{save_batch}条保存一次")
 
@@ -112,3 +114,86 @@ def load_batch_view(get_resp_func, workers=1, save_interval=20, overwrite=False)
         if idx % save_batch != 0:
             save_file()
         st.markdown("任务完成")
+
+
+
+
+def gen_with_job_id(job_id, url,  version, detail=False, timeout=30, interval=0.1):
+    start = time.time()
+
+    url = url+"/get_resp"
+    req = dict(job_id=job_id)
+    first_token_cost = 0
+    total_words = 0
+    total_cost = 0
+
+    while True:
+        resp = requests.post(url=url, json=req)
+        logger.info(f"resp of {url=} {job_id=} is {resp.json()}")
+        resp = resp.json()["data"]
+        if version == "v2":
+            intents = resp["intents"]
+        else:
+            intents = []
+        content = resp["resp"]
+        content = content.strip()
+        status = resp["status"]
+        # if status != "PENDING":
+        if not first_token_cost and content:
+            first_token_cost = time.time() - start
+        total_words += len(content)
+        yield content
+        total_cost = time.time() - start
+        if total_cost >= timeout:
+            yield "请求超时"
+            break
+        if status in ("FINISHED", "FAILED"):
+            break
+        time.sleep(interval)
+
+    yield f"\n\n intents:{jdumps(intents)}"
+    if detail:
+        st.info(f"{first_token_cost=:2.3f}s, {total_cost=:2.3f}s, {total_words=}")
+
+
+def request_chatbot(data, url, version, sync, return_gen=True):
+    url = url.replace("im_chat", "im_chat/v2") if version=="v2" else url
+    try:
+        if sync:
+            resp = requests.post(url=url, json=data)
+            resp = resp.json()
+            
+            logger.info(f"response from {url=}:\n{jdumps(resp)}")
+            content = resp["data"]["resp"]
+            intents = resp["data"].get("intents", [])
+            resp_gen =  (e for e in content +"\n\n intents:"+jdumps(intents) if e)
+            
+        else:
+            create_url = url+"/create"
+            logger.info(f"request to {create_url=} with data:\n{jdumps(data)}")
+            resp = requests.post(url=create_url, json=data)
+            resp.raise_for_status()
+
+            logger.info(f"response from {create_url=}:\n{jdumps(resp.json())}")
+            job_id = resp.json()["data"]["job_id"]
+            resp_gen = gen_with_job_id(job_id=job_id, url=url, detail=True, version=version)
+    except Exception as e:
+        logger.exception(e)
+        return (e for e in "接口错误")
+    if return_gen:
+        return resp_gen
+    else:
+        resp = "".join(resp_gen)
+        # print(resp)
+        content, intents = resp.split("\n\n intents:")
+        intents = jloads(intents)
+        return dict(content=content, intents=intents)
+            
+    
+    
+    
+    
+    
+    
+    
+    

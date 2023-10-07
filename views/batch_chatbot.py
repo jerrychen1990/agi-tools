@@ -11,46 +11,44 @@ from json import dumps
 
 import requests
 import streamlit as st
-from scipy.fftpack import ss_diff
 from snippets import jdumps, jload
 
 from agit.backend.zhipuai_bk import call_llm_api
-from agit.utils import get_config_path, getlog
+from agit.utils import get_config, get_config_path, getlog
 from views import ENV, get_key
-from views.common import load_batch_view
+from views.common import load_batch_view, request_chatbot
 
 logger = getlog(ENV, __name__)
 
-chatbot_config = jload(get_config_path("chatbot_config.json"))
 
 
-default_prompt_template = chatbot_config["prompt_template"]
-
-default_characters =chatbot_config["characters"]
 
 
-default_context=chatbot_config["context"]
-characters = ["车载助手", "女友", "孔子"]
 
-
-def refresh_session():
+def refresh_session(memory):
     session_id = uuid.uuid1().hex
-    st.session_state["session_id"] = session_id
-    st.info(f'new session created:{st.session_state["session_id"] }')
+    memory["session_id"] = session_id
     return session_id
 
-def get_session_id():
-    if "session_id" not in st.session_state:
-        session_id = uuid.uuid1().hex
-        st.session_state["session_id"] = session_id
-        return session_id
-    return st.session_state["session_id"]
+def get_session_id(memory):
+    if "session_id" not in memory:
+        return refresh_session(memory)
+    return memory["session_id"]
 
 
 def load_view():
     
-    url = "https://langchain.bigmodel.cn/im_chat/chat"
-    version = st.sidebar.selectbox("版本", ["v1","v2"], index=0)
+    chatbot_config = get_config("chatbot_config.json")
+    hosts = chatbot_config["hosts"]
+    url = hosts[0]
+    
+    default_prompt_template = chatbot_config["prompt_template"]
+
+    default_characters =chatbot_config["characters"]
+    characters = ["车载助手", "女友", "孔子"]
+    
+    # url = "https://langchain.bigmodel.cn/im_chat/chat"
+    version = st.sidebar.selectbox("版本", ["v2","v1"], index=0)
     temperature = st.sidebar.slider(key=f"temperature", label="temperature",
                                     min_value=0.01, max_value=1.0, value=0.01, step=0.01)
     test_mode = st.sidebar.checkbox(label="调试模式", value=False)
@@ -79,41 +77,40 @@ def load_view():
             return {}    
 
 
-    def get_resp(item,history):
+    def get_resp(item, memory):
         prompt = item["prompt"]
         content=""
         intents = []
         try:
-            session_id = get_session_id()
-            data = {
-                "prompt": prompt,
-                "session_id": session_id,
-                "params": {
-                    "temperature": temperature,
-                },
-                "context":{
-                    "lon":121.65187,
-                    "lat":31.25092
-                },
-                "character": character,
-                "user_config": build_user_config()
-            }
-            base_url = url
-            
-            if version == "v2":
-                base_url = base_url.replace("im_chat", "im_chat/v2")
+            if prompt == "<new session>":
+                content = "更新session"    
+                refresh_session(memory)
+                item.update(response=content, intents=intents)
+            else:    
+                session_id = get_session_id(memory)
+                data = {
+                    "prompt": prompt,
+                    "session_id": session_id,
+                    "params": {
+                        "temperature": temperature,
+                    },
+                    "context":{
+                        "lon":121.65187,
+                        "lat":31.25092
+                    },
+                    "character": character,
+                    "user_config": build_user_config()
+                }
                 
-            logger.info(f"request to {base_url=} with data:\n{jdumps(data)}")
-            resp = requests.post(url=url, json=data)
-            resp = resp.json()
-            
-            logger.info(f"response from {base_url=}:\n{jdumps(resp)}")
-            content = resp["data"]["resp"]
-            intents = resp["data"].get("intents", [])
-            item.update(resp=content, intents=intents)
+                resp_item = request_chatbot(data=data, url=url, version=version, sync=False, return_gen=False)
+                content = resp_item["content"]
+                intents = resp_item["intents"]
+                            
+                item.update(response=content, intents=intents)
             
         except Exception as e:
             logger.exception(e)
+            content = str(e)
         return {"question":prompt, "response":content, "intents":intents}
 
     load_batch_view(get_resp_func=get_resp, workers=1)

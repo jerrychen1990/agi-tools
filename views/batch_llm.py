@@ -36,8 +36,10 @@ def load_view():
     work_num = st.sidebar.number_input(
         key="work_num", label="并发数", min_value=1, max_value=10, value=1, step=1)
 
-    def get_resp_func(item, history):
+    def get_resp_func(item, memory):
         prompt = item["prompt"]
+        history = memory["history"]
+        logger.info(history)
         resp = ""
         try:
             prompt_with_template = prompt_template.replace(
