@@ -27,7 +27,7 @@ def load_view():
     top_p = st.sidebar.slider(label="top_p", min_value=0.1,
                               max_value=0.9, value=0.7, step=0.1)
     models = st.sidebar.multiselect(
-        label="选择模型", options=get_key("models"), default=get_key("models")[0])
+        label="选择模型", options=get_key("models"), default=get_key("default_chat_model"))
     rounds = st.sidebar.number_input(
         label="生成多少个", min_value=1, max_value=10, value=1)
     submit = st.sidebar.button("生成")
