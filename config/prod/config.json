@@ -9,6 +9,6 @@
     "角色对话": "character_chat"
   },
 
-  "models": ["chatglm_lite_32k", "chatglm_std", "chatglm_pro"],
-  "default_chat_model": "chatglm_lite_32k"
+  "models": ["chatglm_lite", "chatglm_std", "chatglm_pro", "chatglm_6b", "chatglm_12b", "chatglm_66b", "chatglm_130b"],
+  "default_chat_model": "chatglm_66b"
 }

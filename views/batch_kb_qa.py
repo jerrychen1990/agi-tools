@@ -6,7 +6,7 @@ from agit.utils import getlog
 from views import ENV, get_key
 from views.common import load_batch_view
 
-logger = getlog(ENV, __name__)
+logger = getlog(ENV,  __name__)
 
 
 def list_kbs(host):

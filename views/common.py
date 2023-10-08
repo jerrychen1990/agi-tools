@@ -8,13 +8,11 @@
 
 import os
 import time
-from math import log
 
 import pandas as pd
 import requests
 import streamlit as st
-from snippets import batch_process, get_current_time_str, jdump, jdumps, jloads
-from tqdm import tqdm
+from snippets import batch_process, get_current_time_str, jdumps, jloads
 
 from agit.utils import getlog, save_csv_xls
 from views import TMP_DIR
@@ -116,8 +114,6 @@ def load_batch_view(get_resp_func, workers=1, save_interval=20, overwrite=False)
         st.markdown("任务完成")
 
 
-
-
 def gen_with_job_id(job_id, url,  version, detail=False, timeout=30, interval=0.1):
     start = time.time()
 
@@ -157,17 +153,18 @@ def gen_with_job_id(job_id, url,  version, detail=False, timeout=30, interval=0.
 
 
 def request_chatbot(data, url, version, sync, return_gen=True):
-    url = url.replace("im_chat", "im_chat/v2") if version=="v2" else url
+    url = url.replace("im_chat", "im_chat/v2") if version == "v2" else url
     try:
         if sync:
             resp = requests.post(url=url, json=data)
             resp = resp.json()
-            
+
             logger.info(f"response from {url=}:\n{jdumps(resp)}")
             content = resp["data"]["resp"]
             intents = resp["data"].get("intents", [])
-            resp_gen =  (e for e in content +"\n\n intents:"+jdumps(intents) if e)
-            
+            resp_gen = (e for e in content +
+                        "\n\n intents:"+jdumps(intents) if e)
+
         else:
             create_url = url+"/create"
             logger.info(f"request to {create_url=} with data:\n{jdumps(data)}")
@@ -176,7 +173,8 @@ def request_chatbot(data, url, version, sync, return_gen=True):
 
             logger.info(f"response from {create_url=}:\n{jdumps(resp.json())}")
             job_id = resp.json()["data"]["job_id"]
-            resp_gen = gen_with_job_id(job_id=job_id, url=url, detail=True, version=version)
+            resp_gen = gen_with_job_id(
+                job_id=job_id, url=url, detail=True, version=version)
     except Exception as e:
         logger.exception(e)
         return (e for e in "接口错误")
@@ -188,12 +186,3 @@ def request_chatbot(data, url, version, sync, return_gen=True):
         content, intents = resp.split("\n\n intents:")
         intents = jloads(intents)
         return dict(content=content, intents=intents)
-            
-    
-    
-    
-    
-    
-    
-    
-    
