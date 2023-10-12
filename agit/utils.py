@@ -14,31 +14,30 @@ import numpy as np
 import pandas as pd
 from snippets import jload
 
+logger = logging.getLogger(__name__)
+
 
 def getlog(env, name):
-    # print(f"create logger with {env=}, {name=}")
-    if env == "dev" or env == "local":
-        logger = logging.getLogger(name)
-        if name in logging.Logger.manager.loggerDict:
-            return logger
-        logger.propagate = False
-        logger.setLevel(logging.DEBUG)
-        streamHandler = logging.StreamHandler()
-        streamHandler.setFormatter(fmt=logging.Formatter(
-            "%(asctime)s [%(levelname)s][%(filename)s:%(lineno)d]:%(message)s", datefmt='%Y-%m-%d %H:%M:%S'))
-        logger.addHandler(streamHandler)
-        return logger
-    else:
-        logger = logging.getLogger(name)
-        if name in logging.Logger.manager.loggerDict:
-            return logger
-        logger.propagate = False
-        logger.setLevel(logging.INFO)
-        streamHandler = logging.StreamHandler()
-        streamHandler.setFormatter(fmt=logging.Formatter(
-            "%(asctime)s [%(levelname)s]%(message)s", datefmt='%Y-%m-%d %H:%M:%S'))
-        logger.addHandler(streamHandler)
-        return logger
+    exist = name in logging.Logger.manager.loggerDict
+    logger.info(f"create logger with {env=}, {name=}, {exist=}")
+    rs_logger = logging.getLogger(name)
+    if not exist:
+        if env in ["dev", "local"]:
+            rs_logger.propagate = False
+            rs_logger.setLevel(logging.DEBUG)
+            streamHandler = logging.StreamHandler()
+            streamHandler.setFormatter(fmt=logging.Formatter(
+                "%(asctime)s [%(levelname)s][%(filename)s:%(lineno)d]:%(message)s", datefmt='%Y-%m-%d %H:%M:%S'))
+            rs_logger.addHandler(streamHandler)
+        else:
+            rs_logger.propagate = False
+            rs_logger.setLevel(logging.INFO)
+            streamHandler = logging.StreamHandler()
+            streamHandler.setFormatter(fmt=logging.Formatter(
+                "%(asctime)s [%(levelname)s]%(message)s", datefmt='%Y-%m-%d %H:%M:%S'))
+            rs_logger.addHandler(streamHandler)
+
+    return rs_logger
 
 
 def save_csv_xls(df, path):
@@ -90,16 +89,13 @@ def get_config(config_name):
     return jload(get_config_path(config_name))
 
 
-
 class ConfigMixin:
     @classmethod
-    def from_config(cls, config:Union[dict, str]):
+    def from_config(cls, config: Union[dict, str]):
         if isinstance(config, str):
-                if config.endswith(".json"):
-                    config = jload(config)
-                else:
-                    raise ValueError(f"{config} is not a valid config file")
+            if config.endswith(".json"):
+                config = jload(config)
+            else:
+                raise ValueError(f"{config} is not a valid config file")
         instance = cls(**config)
         return instance
-        
-    

@@ -8,10 +8,8 @@
 
 
 import streamlit as st
-from snippets.utils import jload
 
 from agit.backend import call_llm_api
-from agit.utils import get_config_path
 from views import get_key
 from views.common import load_chat_view
 
