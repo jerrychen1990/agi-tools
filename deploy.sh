@@ -1,4 +1,4 @@
-TAG=${TAG}
+TAG=$(date '+%Y%m%d%H%M%S')
 echo "build image"
 target=agi-tools:$TAG
 echo build image $target
