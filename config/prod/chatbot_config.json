@@ -14,8 +14,8 @@
   ],
   "hosts": [
     "https://langchain.bigmodel.cn/im_chat/chat",
-    "http://192.168.110.132:5001/chat"
+    "http://10.50.244.118:5001/chat"
   ],
-  "interval": 0.1,
+  "interval": 0.05,
   "timeout": 30
 }

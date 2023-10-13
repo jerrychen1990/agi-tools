@@ -65,6 +65,7 @@ def load_batch_view(get_resp_func, workers=1, save_interval=20, overwrite=False)
             st.download_button(label="下载文件", key=dst_file_name, data=byte_content,
                                file_name=dst_file_name, mime="application/octet-stream")
 
+    logger.info("empty momory")
     memory = dict()
 
     uploaded_file = st.file_uploader(
@@ -153,7 +154,7 @@ def gen_with_job_id(job_id, url,  version, detail=False, timeout=30, interval=0.
 
 
 def request_chatbot(data, url, version, sync, return_gen=True):
-    url = url.replace("im_chat", "im_chat/v2") if version == "v2" else url
+    url = url.replace("/chat", "/v2/chat") if version == "v2" else url
     try:
         if sync:
             resp = requests.post(url=url, json=data)

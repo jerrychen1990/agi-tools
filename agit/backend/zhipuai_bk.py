@@ -18,7 +18,7 @@ from snippets import retry
 
 from agit.utils import getlog
 
-logger = getlog("prod", __name__)
+logger = getlog("prod", __file__)
 
 
 def check_api_key(api_key):

@@ -9,6 +9,7 @@
 import uuid
 
 import streamlit as st
+from traitlets import default
 
 from agit.utils import get_config, getlog
 from views import ENV
@@ -51,6 +52,11 @@ def load_view():
     )
     test_mode = st.sidebar.checkbox(label="调试模式", value=False)
     character = st.sidebar.selectbox(label="人设", options=characters, index=0)
+    multi_turn = st.sidebar.checkbox(label="多轮对话", value=True)
+    work_num = 1
+    if not multi_turn:
+        work_num = st.sidebar.number_input(
+            label="并发数", min_value=1, max_value=5, value=1)
 
     if test_mode:
         prompt_template = st.sidebar.text_area(
@@ -86,7 +92,8 @@ def load_view():
                 refresh_session(memory)
                 item.update(response=content, intents=intents)
             else:
-                session_id = get_session_id(memory)
+                session_id = get_session_id(
+                    memory) if multi_turn else uuid.uuid1().hex
                 data = {
                     "prompt": prompt,
                     "session_id": session_id,
@@ -111,4 +118,4 @@ def load_view():
             content = str(e)
         return {"question": prompt, "response": content, "intents": intents}
 
-    load_batch_view(get_resp_func=get_resp, workers=1)
+    load_batch_view(get_resp_func=get_resp, workers=work_num)

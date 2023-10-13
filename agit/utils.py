@@ -19,9 +19,9 @@ logger = logging.getLogger(__name__)
 
 def getlog(env, name):
     exist = name in logging.Logger.manager.loggerDict
-    logger.info(f"create logger with {env=}, {name=}, {exist=}")
     rs_logger = logging.getLogger(name)
     if not exist:
+        logger.info(f"create logger with {env=}, {name=}, {exist=}")
         if env in ["dev", "local"]:
             rs_logger.propagate = False
             rs_logger.setLevel(logging.DEBUG)
