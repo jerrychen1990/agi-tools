@@ -9,7 +9,6 @@
 import uuid
 
 import streamlit as st
-from traitlets import default
 
 from agit.utils import get_config, getlog
 from views import ENV
