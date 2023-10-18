@@ -14,32 +14,12 @@ import os
 import sys
 
 from setuptools import find_packages, setup
-from snippets import get_latest_version, get_next_version
-
-REQ = [
-    "python_snippets",
-    "zhipuai",
-    "openai",
-    "click",
-    "pandas",
-    "html2text",
-    "langchain",
-    "tiktoken"
-]
+from snippets import get_latest_version, get_next_version, read2list
 
 
-def get_version(pkg_name):
-    try:
-        libinfo_py = os.path.join(pkg_name, '__init__.py')
-        libinfo_content = open(libinfo_py, 'r', encoding='utf8').readlines()
-        version_line = [l.strip() for l in libinfo_content if l.startswith('__version__')][
-            0
-        ]
-        exec(version_line)
-        return tuple([int(e) for e in locals()["__version__"].split(".")])
-
-    except FileNotFoundError:
-        return None
+def get_install_req():
+    req = read2list("requirements.txt")
+    return req
 
 
 if __name__ == "__main__":
@@ -51,12 +31,15 @@ if __name__ == "__main__":
     else:
         latest_version = get_latest_version(name)
         version = get_next_version(latest_version)
+
+    install_req = get_install_req()
     print(f"version: {version}")
+    print(f"install_req:{install_req}")
 
     setup(
         name=name,
         version=version,
-        install_requires=REQ,
+        install_requires=install_req,
         packages=find_packages(exclude=['tests*']),
         package_dir={"": "."},
         package_data={},

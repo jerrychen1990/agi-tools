@@ -1,9 +1,10 @@
+import enum
 import time
 import uuid
 
 import requests
 import streamlit as st
-from snippets import jdumps, jload
+from snippets import jdumps, jload, batchify
 
 from agit import AGIT_ENV
 from agit.utils import get_config, getlog
@@ -25,7 +26,6 @@ def get_session_id():
     return st.session_state["session_id"]
 
 
-
 def load_view():
     chatbot_config = get_config("chatbot_config.json")
     hosts = chatbot_config["hosts"]
@@ -41,7 +41,7 @@ def load_view():
     character = st.sidebar.selectbox(
         label="人设", options=characters, index=0)
 
-    version = st.sidebar.selectbox("版本", ["v2", "v1"], index=0)
+    version = st.sidebar.selectbox("版本", ["v3", "v2", "v1"], index=0)
     clear = st.sidebar.button("清空历史")
     if clear:
         refresh_session()
@@ -70,6 +70,12 @@ def load_view():
 
     def get_resp(prompt):
         session_id = get_session_id()
+
+        history = []
+        for idx, (u, a) in enumerate(batchify(st.session_state.messages, batch_size=2)):
+            item = dict(timestamp=idx, prompt=u["content"], response=a["content"], intents=[])
+            history.append(item)
+        # logger.info(f"{history=}")
         data = {
             "prompt": prompt,
             "session_id": session_id,
@@ -78,6 +84,7 @@ def load_view():
                 "lon": 121.65187,
                 "lat": 31.25092
             },
+            "history": history[-10:],
             "params": {
                 "temperature": temperature,
                 # "model": model

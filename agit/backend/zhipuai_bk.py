@@ -15,10 +15,12 @@ import numpy as np
 import zhipuai
 from cachetools import LRUCache, cached
 from snippets import retry
+from agit import AGIT_ENV
+
 
 from agit.utils import getlog
 
-logger = getlog("prod", __file__)
+logger = getlog(AGIT_ENV, __file__)
 
 
 def check_api_key(api_key):

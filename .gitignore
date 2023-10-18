@@ -164,3 +164,4 @@ cython_debug/
 AIAssitant.code-workspace
 二六三：2022年年度报告.md手动切分版.txt
 agi-tools.code-workspace
+config/.DS_Store

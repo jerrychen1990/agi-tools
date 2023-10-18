@@ -155,6 +155,8 @@ def gen_with_job_id(job_id, url,  version, detail=False, timeout=30, interval=0.
 
 def request_chatbot(data, url, version, sync, return_gen=True):
     url = url.replace("/chat", "/v2/chat") if version == "v2" else url
+    url = url.replace("/chat", "/v3/chat") if version == "v3" else url
+
     try:
         if sync:
             resp = requests.post(url=url, json=data)

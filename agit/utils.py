@@ -12,50 +12,17 @@ from typing import List, Union
 
 import numpy as np
 import pandas as pd
-from snippets import jload
+from snippets import jload, getlog, dump_list, read2list
 
-logger = logging.getLogger(__name__)
-
-
-def getlog(env, name):
-    exist = name in logging.Logger.manager.loggerDict
-    rs_logger = logging.getLogger(name)
-    if not exist:
-        logger.info(f"create logger with {env=}, {name=}, {exist=}")
-        if env in ["dev", "local"]:
-            rs_logger.propagate = False
-            rs_logger.setLevel(logging.DEBUG)
-            streamHandler = logging.StreamHandler()
-            streamHandler.setFormatter(fmt=logging.Formatter(
-                "%(asctime)s [%(levelname)s][%(filename)s:%(lineno)d]:%(message)s", datefmt='%Y-%m-%d %H:%M:%S'))
-            rs_logger.addHandler(streamHandler)
-        else:
-            rs_logger.propagate = False
-            rs_logger.setLevel(logging.INFO)
-            streamHandler = logging.StreamHandler()
-            streamHandler.setFormatter(fmt=logging.Formatter(
-                "%(asctime)s [%(levelname)s]%(message)s", datefmt='%Y-%m-%d %H:%M:%S'))
-            rs_logger.addHandler(streamHandler)
-
-    return rs_logger
+logger = getlog("prod", __file__)
 
 
 def save_csv_xls(df, path):
-    if path.endswith(".csv"):
-        df.to_csv(path, index=False)
-    elif path.endswith(".xlsx"):
-        df.to_excel(path, index=False)
-    else:
-        raise Exception(f"Unknown file format: {path}")
+    return dump_list(df, path)
 
 
 def read_csv_xls(path):
-    if path.endswith(".csv"):
-        return pd.read_csv(path)
-    elif path.endswith(".xlsx"):
-        return pd.read_excel(path)
-    else:
-        raise Exception(f"Unknown file format: {path}")
+    return read2list(path)
 
 
 def cal_vec_similarity(vec1: List[float], vec2: List[float], normalize=True, metric="cosine"):
