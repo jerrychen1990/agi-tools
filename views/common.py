@@ -128,7 +128,7 @@ def gen_with_job_id(job_id, url,  version, detail=False, timeout=30, interval=0.
         resp = requests.post(url=url, json=req)
         logger.info(f"resp of {url=} {job_id=} is {resp.json()}")
         resp = resp.json()["data"]
-        if version == "v2":
+        if version in ("v2", "v3"):
             intents = resp["intents"]
         else:
             intents = []

@@ -32,7 +32,9 @@ def get_session_id(memory):
 def load_view():
     chatbot_config = get_config("chatbot_config.json")
     hosts = chatbot_config["hosts"]
-    url = hosts[0]
+    # st.title("ChatBot")
+
+    url = st.sidebar.selectbox(label="服务地址", options=hosts, index=0)
 
     default_prompt_template = chatbot_config["prompt_template"]
 
