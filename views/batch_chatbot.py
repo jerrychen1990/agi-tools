@@ -40,7 +40,7 @@ def load_view():
     characters = ["车载助手", "女友", "孔子"]
 
     # url = "https://langchain.bigmodel.cn/im_chat/chat"
-    version = st.sidebar.selectbox("版本", ["v2", "v1"], index=0)
+    version = st.sidebar.selectbox("版本", ["v3", "v2", "v1"], index=0)
     temperature = st.sidebar.slider(
         key="temperature",
         label="temperature",
