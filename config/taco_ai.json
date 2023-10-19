@@ -1,0 +1,14 @@
+{
+    "name": "taco",
+    "kb_config": {
+        "index_config": {
+            "normalize_L2": false,
+            "distance_strategy": "MAX_INNER_PRODUCT"
+        },
+        "splitter_config": {
+            "min_len": 5,
+            "max_len": 30
+        }
+    },
+    "llm_model": "gpt-3.5-turbo-0301"
+}

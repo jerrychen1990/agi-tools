@@ -6,15 +6,14 @@
 @Contact :   jerrychen1990@gmail.com
 '''
 
-import logging
 import os
 from typing import List, Union
 
 import numpy as np
-import pandas as pd
+from agit import AGIT_ENV
 from snippets import jload, getlog, dump_list, read2list
 
-logger = getlog("prod", __file__)
+logger = getlog(AGIT_ENV, __file__)
 
 
 def save_csv_xls(df, path):
