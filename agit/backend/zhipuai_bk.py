@@ -57,7 +57,9 @@ def resp_generator(events, max_len=None, err_resp=None):
 # sdk请求模型
 def call_llm_api(prompt: str, model: str, history=[],
                  api_key=None, stream=True, max_len=None, max_history_len=None,
-                 verbose=logging.INFO, max_single_history_len=None, **kwargs) -> Any:
+                 verbose=logging.INFO, max_single_history_len=None,
+                 do_search=True, search_query=None,
+                 **kwargs) -> Any:
     check_api_key(api_key)
     logger.setLevel(verbose)
 
@@ -80,6 +82,11 @@ def call_llm_api(prompt: str, model: str, history=[],
     logger.debug("\n"+"\n".join(detail_msgs))
     logger.debug(
         f"{model=}, {stream=}, {kwargs=}, history_len={len(history)}, words_num={total_words}")
+
+    if "ref" not in kwargs:
+        ref = dict(enable=do_search, query=search_query if search_query else prompt)
+        kwargs.update(ref=ref)
+
     response = zhipuai.model_api.sse_invoke(
         model=model,
         prompt=zhipu_prompt,
