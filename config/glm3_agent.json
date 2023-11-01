@@ -1,0 +1,4 @@
+{
+    "name": "glm3_agent",
+    "llm_model": "chatglm3-6b"
+}

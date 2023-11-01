@@ -14,3 +14,6 @@ streamlit
 plotly
 streamlit_chat
 openpyxl
+
+## 第三方tool
+tushare

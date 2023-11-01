@@ -18,6 +18,9 @@ from agit.kb import Chunk
 logger = getlog(AGIT_ENV, __file__)
 config_path = os.path.join(AGIT_CONFIG_DIR, "taco_ai.json")
 
+default_model = "gpt-3.5-turbo-0301"
+default_model = "chatglm3-turbo"
+
 
 def build_detail_message(content, references: List[Chunk]):
     rs = content
@@ -41,11 +44,17 @@ if "messages" not in st.session_state:
     st.session_state.messages = []
 
 use_kb = st.sidebar.checkbox(label="使用知识库", value=True)
+if use_kb:
+    threshold = st.sidebar.slider(label="知识阈值", min_value=0.0, max_value=1.0, value=0.6)
+    show_ref = st.sidebar.checkbox(label="展示reference", value=True)
+
+else:
+    threshold = None
+    show_ref = False
+
 use_history = st.sidebar.checkbox(label="多轮聊天", value=True)
-threshold = st.sidebar.slider(label="知识阈值", min_value=0.0, max_value=1.0, value=0.6)
 new_session = st.sidebar.button(label="新会话")
-show_ref = st.sidebar.checkbox(label="展示reference", value=True)
-llm_model = st.sidebar.selectbox(label="选择模型", options=LLM_MODELS, index=LLM_MODELS.index("gpt-3.5-turbo-0301"))
+llm_model = st.sidebar.selectbox(label="选择模型", options=LLM_MODELS, index=LLM_MODELS.index(default_model))
 
 if new_session:
     assistant = get_assistante()
