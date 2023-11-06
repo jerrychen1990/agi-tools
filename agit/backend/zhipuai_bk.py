@@ -61,6 +61,7 @@ def call_llm_api(prompt: str, model: str, history=[],
                  do_search=True, search_query=None,
                  **kwargs) -> Any:
     check_api_key(api_key)
+
     logger.setLevel(verbose)
 
     if max_history_len:
@@ -80,13 +81,15 @@ def call_llm_api(prompt: str, model: str, history=[],
     for idx, item in enumerate(zhipu_prompt):
         detail_msgs.append(f"[{idx+1}].{item['role']}:{item['content']}")
     logger.debug("\n"+"\n".join(detail_msgs))
-    logger.debug(
-        f"{model=}, {stream=}, {kwargs=}, history_len={len(history)}, words_num={total_words}")
 
     if "ref" not in kwargs:
         ref = dict(enable=do_search, query=search_query if search_query else prompt)
         kwargs.update(ref=ref)
-
+    if "request_id" not in kwargs:
+        request_id = gen_req_id(prompt=prompt, model=model)
+        kwargs.update(request_id=request_id)
+    logger.debug(
+        f"{model=}, {stream=}, {kwargs=}, history_len={len(history)}, words_num={total_words}")
     response = zhipuai.model_api.sse_invoke(
         model=model,
         prompt=zhipu_prompt,

@@ -6,7 +6,10 @@
 @Contact :   jerrychen1990@gmail.com
 '''
 
+import datetime
 import os
+import time
+import hashlib
 from typing import List, Union
 
 import numpy as np
@@ -53,6 +56,19 @@ def get_config_path(config_name):
 
 def get_config(config_name):
     return jload(get_config_path(config_name))
+
+
+# 生成唯一request_id 根据时间戳+prompt+model生成
+def gen_req_id(prompt, model):
+    cur_time = datetime.datetime.fromtimestamp(time.time()).strftime('%Y%m%d-%H%M%S.%f')
+
+    md5_hash = hashlib.md5(f"{prompt}={model}".encode('utf-8'))
+
+    # 获取 MD5 摘要的字节串
+    md5_digest = md5_hash.digest()
+    md5_hex = md5_digest.hex()
+    req_id = f"{md5_hex}_{cur_time}"
+    return req_id
 
 
 class ConfigMixin:
