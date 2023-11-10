@@ -5,8 +5,9 @@
 @Author  :   ChenHao
 @Contact :   jerrychen1990@gmail.com
 '''
-from utils import getlog
+from agit.utils import getlog
 from agit import AGIT_ENV
+import re
 import requests
 
 
@@ -37,13 +38,18 @@ def eval_by_ref(question, reference, answer):
     resp = requests.post(url="https://117.161.233.25:8443/v1/completions", verify=False, headers=header, json=data)
     resp.raise_for_status()
     text = resp.json()["choices"][0]["text"]
-    logger.info(text)
+    # logger.info(text)
     idx = text.index("评分")
     reason = text[:idx].strip()
-    score = eval(text[idx + 3:])[0][0]
+    pattern = "\[\[(.*?)\]\]"
+    score = re.findall(pattern, text[idx + 3:])
+    score = eval(score[0])
+
+    # score = eval(text[idx + 3:])[0][0]
     return {"reason": reason, "score": score}
 
 
 if __name__ == "__main__":
+    print(eval_by_ref(question="中国人口有多少", reference="", answer="1亿"))
 
-    print(eval_by_ref(question="贵州茅台营收是多少", reference="100亿", answer="10000000000"))
+    # print(eval_by_ref(question="贵州茅台营收是多少", reference="100亿", answer="10000000000"))
