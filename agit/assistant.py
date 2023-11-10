@@ -7,13 +7,14 @@
 '''
 
 
+from lib2to3 import pytree
 import os
 
 from typing import List, Union, Generator
 from agit import AGIT_ENV, assistant_default_prompt_template, AGIT_TEMP_DIR
 
 from agit.backend import call_llm_api
-from agit.tool import Tool
+from agit.tool import Tool, get_tool
 from agit.utils import ConfigMixin
 from snippets import getlog, jdumps
 from pydantic import BaseModel
@@ -34,20 +35,34 @@ class Assistant(ConfigMixin):
                  prompt_template=assistant_default_prompt_template,
                  tmp_dir=None,
                  system=None,
-                 tools=[],
+                 tools: List[Union[str, Tool]] = [],
                  kb_config=dict()) -> None:
         self.name = name
         self.llm_model = llm_model
         self.history = []
         self.prompt_template = prompt_template
         self.system = system
-        self.tools: List[Tool] = tools
+        self._init_tools(tools)
+
         if "name" not in kb_config:
             kb_config["name"] = f"{self.name}_kb"
         if not tmp_dir:
             tmp_dir = os.path.join(AGIT_TEMP_DIR, "temp_knowledge")
         self.tmp_dir = tmp_dir
         self.kb = KnowledgeBase.from_config(kb_config)
+
+    def _init_tools(self, tools: List[Union[str, Tool]]):
+        self.tools: List[Tool] = []
+        for tool in tools:
+            if isinstance(tool, str):
+                try:
+                    tool = get_tool(tool)
+                    self.tools.append(tool)
+                except Exception as e:
+                    print(e)
+                    pass
+            else:
+                self.tools.append(tool)
 
     def __call__(self, *args, **kwargs):
         return self.chat(*args, **kwargs)

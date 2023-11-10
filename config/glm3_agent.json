@@ -1,4 +1,8 @@
 {
     "name": "glm3_agent",
-    "llm_model": "chatglm3-6b"
+    "llm_model": "chatglm3-6b",
+    "system": "Answer the following questions as best as you can. You have access to the following tools:",
+    "tools": [
+        "track_stock"
+    ]
 }
