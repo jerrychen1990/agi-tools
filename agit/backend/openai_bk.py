@@ -12,31 +12,28 @@ import openai
 import logging
 from agit import AGIT_ENV
 from agit.utils import getlog
+from openai import OpenAI
+
 
 logger = getlog(AGIT_ENV, __file__)
 
 
-def check_api_key(api_key):
+def get_client(api_key):
     if api_key is None:
         api_key = os.environ.get("OPENAI_API_KEY", None)
     if not api_key:
         raise ValueError("api_key is required")
-    openai.api_key = api_key
+    return OpenAI(api_key=api_key)
 
 
 def get_gen(chunks):
     for chunk in chunks:
         # logger.debug(chunk)
-
-        if hasattr(chunk.choices[0].delta, "content"):
-            content = chunk.choices[0].delta.content
-            if content:
-                yield chunk.choices[0].delta.content
+        content = chunk.choices[0].delta.content
+        yield content or ""
 
 
-
-
-def call_llm_api(prompt, model="gpt-3.5-turbo-16k-0613",  history=[],
+def call_llm_api(prompt, model="gpt-3.5-turbo-1106",  history=[],
                  system: str = None, tools: List = None, role="user",
                  stream=True, api_key=None, api_base=None,
                  verbose=logging.INFO, **kwargs):
@@ -46,15 +43,13 @@ def call_llm_api(prompt, model="gpt-3.5-turbo-16k-0613",  history=[],
         if system:
             messages = [dict(role="system", content=system, tools=tools)] + messages
         return messages
-    check_api_key(api_key=api_key)
-    if api_base:
-        openai.api_base = api_base
-    logger.setLevel(verbose)
 
     messages = _build_messages(prompt, history, system, tools)
+    logger.setLevel(verbose)
+
+    client = get_client(api_key=api_key)
 
     detail_msgs = []
-
     for idx, item in enumerate(messages):
         msg = f"[{idx+1}].{item['role']}:{item['content']}"
         if "tools" in item:
@@ -65,10 +60,10 @@ def call_llm_api(prompt, model="gpt-3.5-turbo-16k-0613",  history=[],
 
     logger.info(f"request to openai with {model=}, {kwargs=}")
 
-    chunks = openai.ChatCompletion.create(
+    chunks = client.chat.completions.create(
         model=model,
         messages=messages,
-        stream=True
+        stream=True,
     )
     gen = get_gen(chunks)
     if stream:
@@ -78,5 +73,5 @@ def call_llm_api(prompt, model="gpt-3.5-turbo-16k-0613",  history=[],
 
 if __name__ == "__main__":
     text = "你好"
-    resp = call_llm_api(text, stream=False)
+    resp = call_llm_api(text, stream=False, verbose=logging.DEBUG)
     print(resp)

@@ -18,7 +18,7 @@ from snippets import retry
 from agit import AGIT_ENV
 
 
-from agit.utils import getlog
+from agit.utils import getlog, gen_req_id
 
 logger = getlog(AGIT_ENV, __file__)
 
@@ -164,7 +164,7 @@ def call_embedding_api(text: str, api_key=None, norm=None, retry_num=2, wait_tim
 
 if __name__ == "__main__":
     text = "你好"
-    resp = "".join(call_llm_api(text))
+    resp = "".join(call_llm_api(model="chatglm_turbo", prompt=text))
     print(resp)
     emb = call_embedding_api(text)
     print(len(emb))

@@ -1,5 +1,5 @@
 zhipuai
-openai
+openai==1.2.3
 python_snippets
 click
 scipy
