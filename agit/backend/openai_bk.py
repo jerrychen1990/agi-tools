@@ -18,12 +18,12 @@ from openai import OpenAI
 logger = getlog(AGIT_ENV, __file__)
 
 
-def get_client(api_key):
+def get_client(api_key, base_url):
     if api_key is None:
         api_key = os.environ.get("OPENAI_API_KEY", None)
     if not api_key:
         raise ValueError("api_key is required")
-    return OpenAI(api_key=api_key)
+    return OpenAI(api_key=api_key, base_url=base_url)
 
 
 def get_gen(chunks):
@@ -34,6 +34,7 @@ def get_gen(chunks):
 
 
 def call_llm_api(prompt, model="gpt-3.5-turbo-1106",  history=[],
+                 base_url=None,
                  system: str = None, tools: List = None, role="user",
                  stream=True, api_key=None, api_base=None,
                  verbose=logging.INFO, **kwargs):
@@ -47,7 +48,7 @@ def call_llm_api(prompt, model="gpt-3.5-turbo-1106",  history=[],
     messages = _build_messages(prompt, history, system, tools)
     logger.setLevel(verbose)
 
-    client = get_client(api_key=api_key)
+    client = get_client(api_key=api_key, base_url=base_url)
 
     detail_msgs = []
     for idx, item in enumerate(messages):
