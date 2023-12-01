@@ -53,12 +53,16 @@ def resp_generator(events, max_len=None, err_resp=None):
                 f"zhipu api resp failed with event:{event.event}, data:{event.data}")
             yield err_resp if err_resp else event.data
 
+def _support_system(model:str):
+    return model.startswith("chatglm3_130b")
+
 
 # sdk请求模型
 def call_llm_api(prompt: str, model: str, history=[],
                  api_key=None, stream=True, max_len=None, max_history_len=None,
                  verbose=logging.INFO, max_single_history_len=None,
                  do_search=True, search_query=None,
+                 system=None,
                  **kwargs) -> Any:
     check_api_key(api_key)
 
@@ -74,6 +78,12 @@ def call_llm_api(prompt: str, model: str, history=[],
         history = [dict(role=e['role'], content=e['content']
                         [:max_single_history_len]) for e in history]
     zhipu_prompt = history + [dict(role="user", content=prompt)]
+    if system:
+        if not _support_system(model):
+            logger.warn(f"{model} not support system")
+        else:
+            zhipu_prompt = [dict(role="system", content=system)] + zhipu_prompt
+    
     total_words = sum([len(e['content']) for e in zhipu_prompt])
     logger.debug(f"zhipu prompt:")
     detail_msgs = []
@@ -164,7 +174,8 @@ def call_embedding_api(text: str, api_key=None, norm=None, retry_num=2, wait_tim
 
 if __name__ == "__main__":
     text = "你好"
-    resp = "".join(call_llm_api(model="chatglm_turbo", prompt=text))
+    system = "你是孔子，请以文言文回答我"
+    resp = "".join(call_llm_api(model="chatglm3_130b_int8", prompt=text, system=system, stream=False))
     print(resp)
     emb = call_embedding_api(text)
     print(len(emb))
