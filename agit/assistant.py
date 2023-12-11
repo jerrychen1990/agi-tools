@@ -145,9 +145,6 @@ class Assistant(ConfigMixin):
             self.kb.learn(knowledge_or_path)
 
     def store(self):
-        import re
-        re.DT
-        re.findall
         self.kb.store()
 
     @property

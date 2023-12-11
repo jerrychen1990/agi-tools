@@ -8,7 +8,6 @@
 import os
 from typing import List
 
-import openai
 import logging
 from agit import AGIT_ENV
 from agit.utils import getlog
@@ -44,6 +43,7 @@ def call_llm_api(prompt, model="gpt-3.5-turbo-1106",  history=[],
         if system:
             messages = [dict(role="system", content=system, tools=tools)] + messages
         return messages
+    
 
     messages = _build_messages(prompt, history, system, tools)
     logger.setLevel(verbose)
@@ -74,5 +74,11 @@ def call_llm_api(prompt, model="gpt-3.5-turbo-1106",  history=[],
 
 if __name__ == "__main__":
     text = "你好"
-    resp = call_llm_api(text, stream=False, verbose=logging.DEBUG)
+    # resp = call_llm_api(text, stream=False, verbose=logging.DEBUG)
+    resp = call_llm_api(text, stream=False, verbose=logging.DEBUG, model="gpt-3.5-turbo",
+                        api_key="sk-fZXC1WleN8HZtHlTDf721406A6Ce4bBc9340C23eEc5cCfEf",
+                        base_url="https://one-api.glm.ai/v1")
+
+    # resp = call_llm_api(text, stream=False, verbose=logging.DEBUG)
+
     print(resp)

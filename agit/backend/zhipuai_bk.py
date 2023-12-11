@@ -20,7 +20,7 @@ from agit import AGIT_ENV
 
 from agit.utils import getlog, gen_req_id
 
-logger = getlog(AGIT_ENV, __file__)
+default_logger = getlog(AGIT_ENV, __file__)
 
 
 def check_api_key(api_key):
@@ -49,48 +49,52 @@ def resp_generator(events, max_len=None, err_resp=None):
         elif event.event == "finish":
             pass
         else:
-            logger.error(
+            default_logger.error(
                 f"zhipu api resp failed with event:{event.event}, data:{event.data}")
             yield err_resp if err_resp else event.data
 
-def _support_system(model:str):
+
+def _support_system(model: str):
     return model.startswith("chatglm3_130b")
 
 
 # sdk请求模型
-def call_llm_api(prompt: str, model: str, history=[],
+def call_llm_api(prompt: str, model: str, history=[], logger=None,
                  api_key=None, stream=True, max_len=None, max_history_len=None,
                  verbose=logging.INFO, max_single_history_len=None,
                  do_search=True, search_query=None,
-                 system=None,
-                 **kwargs) -> Any:
+                 system=None, **kwargs) -> Any:
     check_api_key(api_key)
 
-    logger.setLevel(verbose)
+    if logger is None:
+        the_logger = default_logger
+        the_logger.setLevel(verbose)
+    else:
+        the_logger = logger
 
     if max_history_len:
-        logger.debug(
+        the_logger.debug(
             f"history length:{len(history)}, cut to {max_history_len}")
         history = history[-max_history_len:]
     if max_single_history_len:
-        logger.debug(
+        the_logger.debug(
             f"cut each history's length to {max_single_history_len}")
         history = [dict(role=e['role'], content=e['content']
                         [:max_single_history_len]) for e in history]
     zhipu_prompt = history + [dict(role="user", content=prompt)]
     if system:
         if not _support_system(model):
-            logger.warn(f"{model} not support system")
+            the_logger.warn(f"{model} not support system")
         else:
             zhipu_prompt = [dict(role="system", content=system)] + zhipu_prompt
-    
+
     total_words = sum([len(e['content']) for e in zhipu_prompt])
-    logger.debug(f"zhipu prompt:")
+    the_logger.debug(f"zhipu prompt:")
     detail_msgs = []
 
     for idx, item in enumerate(zhipu_prompt):
         detail_msgs.append(f"[{idx+1}].{item['role']}:{item['content']}")
-    logger.debug("\n"+"\n".join(detail_msgs))
+    the_logger.debug("\n"+"\n".join(detail_msgs))
 
     if "ref" not in kwargs:
         ref = dict(enable=do_search, query=search_query if search_query else prompt)
@@ -98,7 +102,7 @@ def call_llm_api(prompt: str, model: str, history=[],
     if "request_id" not in kwargs:
         request_id = gen_req_id(prompt=prompt, model=model)
         kwargs.update(request_id=request_id)
-    logger.debug(
+    the_logger.debug(
         f"{model=}, {stream=}, {kwargs=}, history_len={len(history)}, words_num={total_words}")
     response = zhipuai.model_api.sse_invoke(
         model=model,
@@ -120,13 +124,13 @@ def call_character_api(prompt: str, user_name, user_info, bot_name, bot_info,
     check_api_key(api_key)
     zhipu_prompt = history + [dict(role="user", content=prompt)]
     total_words = sum([len(e['content']) for e in zhipu_prompt])
-    logger.debug(f"zhipu prompt:")
+    default_logger.debug(f"zhipu prompt:")
     detail_msgs = []
 
     for idx, item in enumerate(zhipu_prompt):
         detail_msgs.append(f"[{idx+1}].{item['role']}:{item['content']}")
-    logger.debug("\n"+"\n".join(detail_msgs))
-    logger.debug(
+    default_logger.debug("\n"+"\n".join(detail_msgs))
+    default_logger.debug(
         f"{model=},{kwargs=}, history_len={len(history)}, words_num={total_words}")
     meta = {
         "user_info": user_info,
@@ -164,6 +168,7 @@ def call_embedding_api(text: str, api_key=None, norm=None, retry_num=2, wait_tim
             raise Exception(resp["msg"])
         embedding = resp["data"]["embedding"]
         if norm is not None:
+            norm = 2 if norm == True else norm
             embedding = embedding / np.linalg.norm(embedding, norm)
         return embedding
 
