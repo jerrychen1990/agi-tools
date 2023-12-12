@@ -165,11 +165,12 @@ def call_embedding_api(text: str, api_key=None, norm=None, retry_num=2, wait_tim
             prompt=text
         )
         if resp["code"] != 200:
+            default_logger.error(f"embedding error:{resp['msg']}")
             raise Exception(resp["msg"])
         embedding = resp["data"]["embedding"]
         if norm is not None:
-            norm = 2 if norm == True else norm
-            embedding = embedding / np.linalg.norm(embedding, norm)
+            _norm = 2 if norm == True else norm
+            embedding = embedding / np.linalg.norm(embedding, _norm)
         return embedding
 
     if retry_num:
