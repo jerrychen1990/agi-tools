@@ -55,7 +55,7 @@ def resp_generator(events, max_len=None, err_resp=None):
 
 
 def _support_system(model: str):
-    return model.startswith("chatglm3_130b")
+    return model.startswith("chatglm3")
 
 
 # sdk请求模型
