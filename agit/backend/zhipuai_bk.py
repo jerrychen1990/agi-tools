@@ -7,6 +7,7 @@
 '''
 
 
+import copy
 import logging
 import os
 from typing import Any
@@ -102,8 +103,11 @@ def call_llm_api(prompt: str, model: str, history=[], logger=None,
     if "request_id" not in kwargs:
         request_id = gen_req_id(prompt=prompt, model=model)
         kwargs.update(request_id=request_id)
+    show_kwargs = copy.copy(kwargs)
+    del show_kwargs["ref"]
+
     the_logger.debug(
-        f"{model=}, {stream=}, {kwargs=}, history_len={len(history)}, words_num={total_words}")
+        f"{model=}, {stream=}, history_len={len(history)}, words_num={total_words}, {show_kwargs=}")
     response = zhipuai.model_api.sse_invoke(
         model=model,
         prompt=zhipu_prompt,
