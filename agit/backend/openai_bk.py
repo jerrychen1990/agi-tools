@@ -8,7 +8,11 @@
 import os
 from typing import List
 
+import numpy as np
+
 from agit import AGIT_ENV
+from snippets import retry
+
 from agit.utils import getlog
 from openai import OpenAI
 
@@ -51,7 +55,7 @@ def call_llm_api(prompt, model="gpt-3.5-turbo-1106",  history=[],
     def _build_messages(prompt, history, system, tools):
         messages = history + [dict(role="user", content=prompt)]
         if system:
-            messages = [dict(role="system", content=system, tools=tools)] + messages
+            messages = [dict(role="system", content=system)] + messages
         return messages
 
     logger = logger or default_logger
@@ -81,17 +85,36 @@ def call_llm_api(prompt, model="gpt-3.5-turbo-1106",  history=[],
     return "".join(gen)
 
 
+def call_embedding_api(text: str, model="text-embedding-ada-002", api_key=None, base_url=None, proxy=None,
+                       norm=None, retry_num=2, wait_time=1):
+    client = get_client(api_key=api_key, base_url=base_url, proxy=proxy)
+
+    def attempt():
+        embedding = client.embeddings.create(input=[text], model=model).data[0].embedding
+        if norm is not None:
+            _norm = 2 if norm == True else norm
+            embedding = embedding / np.linalg.norm(embedding, _norm)
+        return embedding
+
+    if retry_num:
+        attempt = retry(retry_num=retry_num, wait_time=wait_time)(attempt)
+    return attempt()
+
+
 if __name__ == "__main__":
-    # text = "你好,你是谁？"
+    text = "你好,你是谁？"
     # resp = call_llm_api(text, stream=True, model="gpt-3.5-turbo")
     # for item in resp:
     #     print(item, end="")
 
-    # resp = call_llm_api(text, stream=True, model="gpt-4", proxy="zhipu")
+    # resp = call_llm_api(prompt=text, system="把我的话翻译成法语", stream=True, model="gpt-4", proxy="zhipu")
     # for item in resp:
     #     print(item, end="")
 
-    models = list_models(keyword="gpt-4", proxy="zhipu")
+    models = list_models(keyword="embed", proxy="zhipu")
     # print(models)
     for model in models:
         print(model.id)
+
+    # embd = call_embedding_api(text=text, proxy="zhipu")
+    # print(embd)

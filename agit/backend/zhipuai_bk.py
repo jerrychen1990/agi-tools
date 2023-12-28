@@ -14,7 +14,6 @@ from typing import Any
 
 import numpy as np
 import zhipuai
-from cachetools import LRUCache, cached
 from snippets import retry
 from agit import AGIT_ENV
 
@@ -159,7 +158,6 @@ def call_character_api(prompt: str, user_name, user_info, bot_name, bot_info,
         return resp
 
 
-@cached(LRUCache(maxsize=1000))
 def call_embedding_api(text: str, api_key=None, norm=None, retry_num=2, wait_time=1):
     check_api_key(api_key)
 
