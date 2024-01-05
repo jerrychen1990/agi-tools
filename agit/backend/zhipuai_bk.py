@@ -8,9 +8,10 @@
 
 
 import copy
+import itertools
 import logging
 import os
-from typing import Any
+from typing import Any, Union
 
 import numpy as np
 import zhipuai
@@ -59,7 +60,7 @@ def _support_system(model: str):
 
 
 # sdk请求模型
-def call_llm_api(prompt: str, model: str, history=[], logger=None,
+def call_llm_api_v1(prompt: str, model: str, history=[], logger=None,
                  api_key=None, stream=True, max_len=None, max_history_len=None,
                  verbose=logging.INFO, max_single_history_len=None,
                  do_search=True, search_query=None,
@@ -122,6 +123,87 @@ def call_llm_api(prompt: str, model: str, history=[], logger=None,
         return resp
 
 
+def resp2generator_v4(resp):
+    tool_calls = None
+    acc_chunks = []
+    
+    for chunk in resp:
+        choices = chunk.choices
+        if choices:
+            choice = choices[0]
+            tool_calls = choice.delta.tool_calls
+            acc_chunks.append(chunk)
+        break
+    # print(acc_chunks)
+    def gen():
+        for chunk in itertools.chain(acc_chunks, resp):
+            choices = chunk.choices
+            if choices:
+                choice = choices[0]
+                if choice.delta.content:
+                    yield choice.delta.content
+    return tool_calls, gen()
+            
+            
+
+def call_llm_api_v4(prompt: Union[str, dict], model: str, api_key=None, role="user",
+                    system=None, history=[], tools=[],
+                    logger=None, stream=True, return_origin=False, **kwargs) -> Any:
+    from zhipuai import ZhipuAI
+    import inspect
+    client = ZhipuAI(api_key=api_key or os.environ.get("ZHIPU_API_KEY"))
+    
+    valid_keys = dict(inspect.signature(client.chat.completions.create).parameters).keys()
+
+    
+    the_logger = logger if logger else default_logger
+    if isinstance(prompt, dict):
+        messages = history + [prompt]
+    else:
+        messages= history + [dict(role=role, content=prompt)]
+    if system:
+        messages = [dict(role="system", content=system)] + messages
+        
+    the_logger.debug(messages)
+        
+    if "request_id" not in kwargs:
+        request_id = gen_req_id(prompt=prompt, model=model)
+        kwargs.update(request_id=request_id)
+    
+    kwargs = {k: v for k, v in kwargs.items() if k in valid_keys}
+    
+    show_kwargs = copy.copy(kwargs)
+    the_logger.debug(
+        f"{model=}, {stream=}, {tools=}, history_len={len(history)}, {show_kwargs=}")
+    
+    response = client.chat.completions.create(
+        model=model,
+        messages=messages,
+        tools = tools, 
+        stream=True,
+        **kwargs
+    )
+    if return_origin:
+        return None, response
+    
+    tool_call, resp_gen = resp2generator_v4(response)
+    if not stream:
+        resp_gen = "".join(resp_gen)
+    
+    return tool_call, resp_gen
+    
+
+def call_llm_api(*args, **kwargs):
+    if "__version__" in vars(zhipuai):
+        version = zhipuai.__version__
+        # default_logger.debug(f"using version {version}")
+        return call_llm_api_v4(*args, **kwargs)
+    else:
+        # default_logger.debug(f"using version v1")
+        return call_llm_api_v1(*args, **kwargs)
+    
+
+
 def call_character_api(prompt: str, user_name, user_info, bot_name, bot_info,
                        history=[], model="characterglm", api_key=None, stream=True, max_len=None, **kwargs):
     check_api_key(api_key)
@@ -158,7 +240,41 @@ def call_character_api(prompt: str, user_name, user_info, bot_name, bot_info,
         return resp
 
 
-def call_embedding_api(text: str, api_key=None, norm=None, retry_num=2, wait_time=1):
+def call_embedding_api(*args, **kwargs):
+    if "__version__" in vars(zhipuai):
+        version = zhipuai.__version__
+        # default_logger.debug(f"using version {version}")
+        return call_embedding_api_v4(*args, **kwargs)
+    else:
+        # default_logger.debug(f"using version v1")
+        return call_embedding_api_v1(*args, **kwargs)
+
+
+def call_embedding_api_v4(text: str, api_key=None, model="text_embedding_v2",
+                          norm=None, retry_num=2, wait_time=1):
+    
+    from zhipuai import ZhipuAI
+
+    client = ZhipuAI(api_key=api_key or os.environ.get("ZHIPU_API_KEY"))
+
+
+    def attempt():
+        resp = client.embeddings.create(
+            model=model, #填写需要调用的模型名称
+            input=text,
+        )
+        embedding = resp.data[0].embedding
+        if norm is not None:
+            _norm = 2 if norm == True else norm
+            embedding = embedding / np.linalg.norm(embedding, _norm)
+        return embedding
+
+    if retry_num:
+        attempt = retry(retry_num=retry_num, wait_time=wait_time)(attempt)
+    return attempt()
+
+
+def call_embedding_api_v1(text: str, api_key=None, norm=None, retry_num=2, wait_time=1):
     check_api_key(api_key)
 
     def attempt():
