@@ -55,8 +55,8 @@ def resp_generator(events, max_len=None, err_resp=None):
             yield err_resp if err_resp else event.data
 
 
-def _support_system(model: str):
-    return model.startswith("chatglm3")
+def support_system(model: str):
+    return model.startswith("chatglm3") or model in ["glm-4", "glm-3-turbo"]
 
 
 # sdk请求模型
@@ -84,7 +84,7 @@ def call_llm_api_v1(prompt: str, model: str, history=[], logger=None,
                         [:max_single_history_len]) for e in history]
     zhipu_prompt = history + [dict(role="user", content=prompt)]
     if system:
-        if not _support_system(model):
+        if not support_system(model):
             the_logger.warn(f"{model} not support system")
         else:
             zhipu_prompt = [dict(role="system", content=system)] + zhipu_prompt
@@ -107,7 +107,7 @@ def call_llm_api_v1(prompt: str, model: str, history=[], logger=None,
     del show_kwargs["ref"]
 
     the_logger.debug(
-        f"{model=}, {stream=}, history_len={len(history)}, words_num={total_words}, {show_kwargs=}")
+        f"api_version:[v1], {model=}, {stream=}, history_len={len(history)}, words_num={total_words}, {show_kwargs=}")
     response = zhipuai.model_api.sse_invoke(
         model=model,
         prompt=zhipu_prompt,
@@ -148,7 +148,7 @@ def resp2generator_v4(resp):
 
 def call_llm_api_v4(prompt: Union[str, dict], model: str, api_key=None, role="user",
                     system=None, history=[], tools=[],
-                    logger=None, stream=True, return_origin=False, **kwargs) -> Any:
+                    logger=None, stream=True, return_origin=False, return_tool_call=False, **kwargs) -> Any:
     from zhipuai import ZhipuAI
     import inspect
     client = ZhipuAI(api_key=api_key or os.environ.get("ZHIPU_API_KEY"))
@@ -162,9 +162,15 @@ def call_llm_api_v4(prompt: Union[str, dict], model: str, api_key=None, role="us
     else:
         messages= history + [dict(role=role, content=prompt)]
     if system:
-        messages = [dict(role="system", content=system)] + messages
+        if support_system(model):
+            messages = [dict(role="system", content=system)] + messages
+        else:
+            the_logger.warning(f"{model} not support system message, system argument will not work")
         
-    the_logger.debug(messages)
+    detail_msgs = []
+    for idx, item in enumerate(messages):
+        detail_msgs.append(f"[{idx+1}].{item['role']}:{item['content']}")
+    the_logger.debug("\n"+"\n".join(detail_msgs))
         
     if "request_id" not in kwargs:
         request_id = gen_req_id(prompt=prompt, model=model)
@@ -174,7 +180,7 @@ def call_llm_api_v4(prompt: Union[str, dict], model: str, api_key=None, role="us
     
     show_kwargs = copy.copy(kwargs)
     the_logger.debug(
-        f"{model=}, {stream=}, {tools=}, history_len={len(history)}, {show_kwargs=}")
+        f"api_version:[v4], {model=}, {stream=}, {tools=}, history_len={len(history)}, {show_kwargs=}")
     
     response = client.chat.completions.create(
         model=model,
@@ -182,16 +188,18 @@ def call_llm_api_v4(prompt: Union[str, dict], model: str, api_key=None, role="us
         tools = tools, 
         stream=True,
         **kwargs
-    )
+    )    
     if return_origin:
-        return None, response
+        return response    
     
     tool_call, resp_gen = resp2generator_v4(response)
     if not stream:
         resp_gen = "".join(resp_gen)
-    
-    return tool_call, resp_gen
-    
+        
+    if return_tool_call:
+        return tool_call, resp_gen
+    return resp_gen
+        
 
 def call_llm_api(*args, **kwargs):
     if "__version__" in vars(zhipuai):
