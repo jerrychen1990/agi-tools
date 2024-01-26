@@ -61,10 +61,10 @@ def support_system(model: str):
 
 # sdk请求模型
 def call_llm_api_v1(prompt: str, model: str, history=[], logger=None,
-                 api_key=None, stream=True, max_len=None, max_history_len=None,
-                 verbose=logging.INFO, max_single_history_len=None,
-                 do_search=True, search_query=None,
-                 system=None, **kwargs) -> Any:
+                    api_key=None, stream=True, max_len=None, max_history_len=None,
+                    verbose=logging.INFO, max_single_history_len=None,
+                    do_search=True, search_query=None,
+                    system=None, **kwargs) -> Any:
     check_api_key(api_key)
 
     if logger is None:
@@ -126,7 +126,7 @@ def call_llm_api_v1(prompt: str, model: str, history=[], logger=None,
 def resp2generator_v4(resp):
     tool_calls = None
     acc_chunks = []
-    
+
     for chunk in resp:
         choices = chunk.choices
         if choices:
@@ -135,6 +135,7 @@ def resp2generator_v4(resp):
             acc_chunks.append(chunk)
         break
     # print(acc_chunks)
+
     def gen():
         for chunk in itertools.chain(acc_chunks, resp):
             choices = chunk.choices
@@ -143,63 +144,78 @@ def resp2generator_v4(resp):
                 if choice.delta.content:
                     yield choice.delta.content
     return tool_calls, gen()
-            
-            
+
 
 def call_llm_api_v4(prompt: Union[str, dict], model: str, api_key=None, role="user",
-                    system=None, history=[], tools=[],
+                    system=None, history=[], tools=[], do_search=False, search_query=None,
                     logger=None, stream=True, return_origin=False, return_tool_call=False, **kwargs) -> Any:
     from zhipuai import ZhipuAI
     import inspect
     client = ZhipuAI(api_key=api_key or os.environ.get("ZHIPU_API_KEY"))
-    
+
     valid_keys = dict(inspect.signature(client.chat.completions.create).parameters).keys()
 
-    
     the_logger = logger if logger else default_logger
     if isinstance(prompt, dict):
         messages = history + [prompt]
     else:
-        messages= history + [dict(role=role, content=prompt)]
+        messages = history + [dict(role=role, content=prompt)]
     if system:
         if support_system(model):
             messages = [dict(role="system", content=system)] + messages
         else:
             the_logger.warning(f"{model} not support system message, system argument will not work")
-        
+
     detail_msgs = []
     for idx, item in enumerate(messages):
         detail_msgs.append(f"[{idx+1}].{item['role']}:{item['content']}")
     the_logger.debug("\n"+"\n".join(detail_msgs))
-        
+
+    tools = copy.copy(tools)
     if "request_id" not in kwargs:
         request_id = gen_req_id(prompt=prompt, model=model)
         kwargs.update(request_id=request_id)
-    
+    if not do_search:
+        close_search_tool = {'type': 'web_search', 'web_search': {'enable': False, 'search_query': prompt}}
+        tools.append(close_search_tool)
+        the_logger.debug(f"adding close search tool")
+        
     kwargs = {k: v for k, v in kwargs.items() if k in valid_keys}
+    # 处理temperature=0的特殊情况
+    if kwargs.get("temperature") == 0:
+        kwargs.pop("temperature")
+        kwargs["do_sample"]=False
     
     show_kwargs = copy.copy(kwargs)
     the_logger.debug(
         f"api_version:[v4], {model=}, {stream=}, {tools=}, history_len={len(history)}, {show_kwargs=}")
-    
+    if return_origin:
+        return client.chat.completions.create(
+            model=model,
+            messages=messages,
+            tools=tools,
+            stream=stream,
+            **kwargs
+        )
+
     response = client.chat.completions.create(
         model=model,
         messages=messages,
-        tools = tools, 
+        tools=tools,
         stream=True,
         **kwargs
-    )    
+    )
     if return_origin:
-        return response    
-    
+        return response
+
     tool_call, resp_gen = resp2generator_v4(response)
     if not stream:
         resp_gen = "".join(resp_gen)
-        
+
     if return_tool_call:
         return tool_call, resp_gen
     return resp_gen
-        
+
 
 def call_llm_api(*args, **kwargs):
     if "__version__" in vars(zhipuai):
@@ -209,7 +225,6 @@ def call_llm_api(*args, **kwargs):
     else:
         # default_logger.debug(f"using version v1")
         return call_llm_api_v1(*args, **kwargs)
-    
 
 
 def call_character_api(prompt: str, user_name, user_info, bot_name, bot_info,
@@ -260,15 +275,14 @@ def call_embedding_api(*args, **kwargs):
 
 def call_embedding_api_v4(text: str, api_key=None, model="text_embedding_v2",
                           norm=None, retry_num=2, wait_time=1):
-    
+
     from zhipuai import ZhipuAI
 
     client = ZhipuAI(api_key=api_key or os.environ.get("ZHIPU_API_KEY"))
 
-
     def attempt():
         resp = client.embeddings.create(
-            model=model, #填写需要调用的模型名称
+            model=model,  # 填写需要调用的模型名称
             input=text,
         )
         embedding = resp.data[0].embedding
@@ -302,6 +316,18 @@ def call_embedding_api_v1(text: str, api_key=None, norm=None, retry_num=2, wait_
     if retry_num:
         attempt = retry(retry_num=retry_num, wait_time=wait_time)(attempt)
     return attempt()
+
+
+def call_image_gen(prompt:str, api_key:str=None)->str:
+    from zhipuai import ZhipuAI
+    client = ZhipuAI(api_key=api_key or os.environ.get("ZHIPU_API_KEY"))
+
+    response = client.images.generations(
+        model="cogview-3", #填写需要调用的模型名称
+        prompt=prompt,
+    )
+    return response.data[0].url
+
 
 
 if __name__ == "__main__":

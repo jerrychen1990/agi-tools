@@ -20,10 +20,10 @@ from openai import OpenAI
 default_logger = getlog(AGIT_ENV, __file__)
 
 
-def get_client(api_key, base_url, proxy):
+def get_client(proxy:str, api_key:str=None, base_url:str=None):
     if api_key and base_url:
         return OpenAI(api_key=api_key, base_url=base_url)
-    if proxy == "zhipu":
+    if proxy and proxy.lower() == "zhipu":
         default_logger.debug("use zhipu api_key")
         return OpenAI(api_key=os.environ.get("OPENAI_API_KEY_ZHIPU", None), base_url="https://one-api.glm.ai/v1")
     else:
@@ -103,18 +103,19 @@ def call_embedding_api(text: str, model="text-embedding-ada-002", api_key=None, 
 
 if __name__ == "__main__":
     text = "你好,你是谁？"
-    # resp = call_llm_api(text, stream=True, model="gpt-3.5-turbo")
-    # for item in resp:
-    #     print(item, end="")
+    model = "gpt-4"
+    resp = call_llm_api(text, stream=True, model=model, proxy="ZHIPU")
+    for item in resp:
+        print(item, end="")
 
     # resp = call_llm_api(prompt=text, system="把我的话翻译成法语", stream=True, model="gpt-4", proxy="zhipu")
     # for item in resp:
     #     print(item, end="")
 
-    models = list_models(keyword="embed", proxy="zhipu")
-    # print(models)
-    for model in models:
-        print(model.id)
+    # models = list_models(keyword="embed", proxy="zhipu")
+    # # print(models)
+    # for model in models:
+    #     print(model.id)
 
     # embd = call_embedding_api(text=text, proxy="zhipu")
     # print(embd)
