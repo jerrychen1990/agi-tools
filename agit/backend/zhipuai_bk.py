@@ -12,16 +12,22 @@ import itertools
 import logging
 import os
 from typing import Any, Union
+from loguru import logger
 
 import numpy as np
 import zhipuai
-from snippets import retry
-from agit import AGIT_ENV
+from agit import AGIT_LOG_HOME
+from snippets import retry, jdumps
 
 
-from agit.utils import getlog, gen_req_id
+from agit.utils import gen_req_id
 
-default_logger = getlog(AGIT_ENV, __file__)
+logger.add(os.path.join(AGIT_LOG_HOME,"zhipuai_bk.log"), retention="365 days", rotation=" 1day", level="INFO", filter=__name__,
+           format="%(asctime)s [%(levelname)s]%(message)s", colorize=True) 
+
+default_logger = logger
+
+# default_logger = getlog(AGIT_ENV, __file__)
 
 
 def check_api_key(api_key):
@@ -123,7 +129,7 @@ def call_llm_api_v1(prompt: str, model: str, history=[], logger=None,
         return resp
 
 
-def resp2generator_v4(resp):
+def resp2generator_v4(resp, logger):
     tool_calls = None
     acc_chunks = []
 
@@ -139,10 +145,15 @@ def resp2generator_v4(resp):
     def gen():
         for chunk in itertools.chain(acc_chunks, resp):
             choices = chunk.choices
+            if chunk.usage:
+                logger.debug(chunk.usage)
+                
             if choices:
                 choice = choices[0]
                 if choice.delta.content:
                     yield choice.delta.content
+                    
+            
     return tool_calls, gen()
 
 
@@ -175,10 +186,11 @@ def call_llm_api_v4(prompt: Union[str, dict], model: str, api_key=None, role="us
     if "request_id" not in kwargs:
         request_id = gen_req_id(prompt=prompt, model=model)
         kwargs.update(request_id=request_id)
+        
     if not do_search:
-        close_search_tool = {'type': 'web_search', 'web_search': {'enable': False, 'search_query': prompt}}
+        close_search_tool = {'type': 'web_search', 'web_search': {'enable': False, 'search_query': search_query}}
         tools.append(close_search_tool)
-        the_logger.debug(f"adding close search tool")
+        # the_logger.debug(f"adding close search tool")
         
     kwargs = {k: v for k, v in kwargs.items() if k in valid_keys}
     # 处理temperature=0的特殊情况
@@ -186,29 +198,30 @@ def call_llm_api_v4(prompt: Union[str, dict], model: str, api_key=None, role="us
         kwargs.pop("temperature")
         kwargs["do_sample"]=False
     
-    show_kwargs = copy.copy(kwargs)
-    the_logger.debug(
-        f"api_version:[v4], {model=}, {stream=}, {tools=}, history_len={len(history)}, {show_kwargs=}")
-    if return_origin:
-        return client.chat.completions.create(
-            model=model,
-            messages=messages,
-            tools=tools,
-            stream=stream,
-            **kwargs
-        )
 
-    response = client.chat.completions.create(
-        model=model,
+    api_inputs = dict(model=model,
         messages=messages,
         tools=tools,
-        stream=True,
-        **kwargs
-    )
-    if return_origin:
-        return response
+        stream=stream,
+        **kwargs)
+    the_logger.debug(f"api_inputs:\n{jdumps(api_inputs)}")
+    
 
-    tool_call, resp_gen = resp2generator_v4(response)
+    
+    if return_origin:
+        return client.chat.completions.create(
+            **api_inputs
+        )
+
+    api_inputs.update(stream=True)
+    response = client.chat.completions.create(
+        **api_inputs
+    )
+    # usage = response.usage
+    # the_logger.debug(f"token usage: {usage}")
+
+    tool_call, resp_gen = resp2generator_v4(response, logger=the_logger)
+
     if not stream:
         resp_gen = "".join(resp_gen)
 

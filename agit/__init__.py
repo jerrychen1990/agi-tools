@@ -17,6 +17,8 @@ AGIT_TEMP_DIR = os.path.join(AGIT_DATA_HOME, "temp")
 AGIT_KB_DIR = os.path.join(AGIT_DATA_HOME, "kb")
 AGIT_CONFIG_DIR = os.path.join(AGIT_DATA_HOME, "config")
 
+AGIT_LOG_HOME = os.path.join(AGIT_DATA_HOME, "/tmp/logs")
+
 
 assistant_default_prompt_template = '''你是一个知识渊博、风趣幽默的人工智能小助手
 你回答问题的时候可以参考reference标志的信息
