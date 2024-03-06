@@ -22,13 +22,11 @@ from snippets import retry, jdumps
 
 from agit.utils import gen_req_id
 
-logger.add(os.path.join(AGIT_LOG_HOME,"zhipuai_bk.log"), retention="365 days", rotation=" 1day", level="INFO", filter=__name__,
-           format="%(asctime)s [%(levelname)s]%(message)s", colorize=True) 
+fmt = "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> <level>{level: <8}</level>|  - <level>[{extra[request_id]}]{message}</level>"
+
+logger.add(os.path.join(AGIT_LOG_HOME,"zhipuai_bk.log"), retention="365 days", rotation=" 00:00", level="DEBUG", filter=__name__, format=fmt) 
 
 default_logger = logger
-
-# default_logger = getlog(AGIT_ENV, __file__)
-
 
 def check_api_key(api_key):
     if api_key is None:
@@ -129,7 +127,7 @@ def call_llm_api_v1(prompt: str, model: str, history=[], logger=None,
         return resp
 
 
-def resp2generator_v4(resp, logger):
+def resp2generator_v4(resp, logger, request_id):
     tool_calls = None
     acc_chunks = []
 
@@ -143,15 +141,18 @@ def resp2generator_v4(resp, logger):
     # print(acc_chunks)
 
     def gen():
+        acc = []
         for chunk in itertools.chain(acc_chunks, resp):
-            choices = chunk.choices
-            if chunk.usage:
-                logger.debug(chunk.usage)
-                
+            choices = chunk.choices                
             if choices:
                 choice = choices[0]
                 if choice.delta.content:
-                    yield choice.delta.content
+                    delta_content = choice.delta.content
+                    yield delta_content
+                    acc.append(delta_content)
+        resp_msg = "".join(acc).strip()
+        with logger.contextualize(request_id=request_id):
+            logger.debug(f"model generate answer:{resp_msg}")
                     
             
     return tool_calls, gen()
@@ -163,71 +164,78 @@ def call_llm_api_v4(prompt: Union[str, dict], model: str, api_key=None, role="us
     from zhipuai import ZhipuAI
     import inspect
     client = ZhipuAI(api_key=api_key or os.environ.get("ZHIPU_API_KEY"))
-
-    valid_keys = dict(inspect.signature(client.chat.completions.create).parameters).keys()
-
-    the_logger = logger if logger else default_logger
-    if isinstance(prompt, dict):
-        messages = history + [prompt]
-    else:
-        messages = history + [dict(role=role, content=prompt)]
-    if system:
-        if support_system(model):
-            messages = [dict(role="system", content=system)] + messages
-        else:
-            the_logger.warning(f"{model} not support system message, system argument will not work")
-
-    detail_msgs = []
-    for idx, item in enumerate(messages):
-        detail_msgs.append(f"[{idx+1}].{item['role']}:{item['content']}")
-    the_logger.debug("\n"+"\n".join(detail_msgs))
-
-    tools = copy.copy(tools)
     if "request_id" not in kwargs:
         request_id = gen_req_id(prompt=prompt, model=model)
-        kwargs.update(request_id=request_id)
-        
-    if not do_search:
-        close_search_tool = {'type': 'web_search', 'web_search': {'enable': False, 'search_query': search_query}}
-        tools.append(close_search_tool)
-        # the_logger.debug(f"adding close search tool")
-        
-    kwargs = {k: v for k, v in kwargs.items() if k in valid_keys}
-    # 处理temperature=0的特殊情况
-    if kwargs.get("temperature") == 0:
-        kwargs.pop("temperature")
-        kwargs["do_sample"]=False
-    
-
-    api_inputs = dict(model=model,
-        messages=messages,
-        tools=tools,
-        stream=stream,
-        **kwargs)
-    the_logger.debug(f"api_inputs:\n{jdumps(api_inputs)}")
-    
+        kwargs.update(request_id=request_id)   
+    request_id = kwargs["request_id"]
+    the_logger = logger if logger else default_logger
 
     
-    if return_origin:
-        return client.chat.completions.create(
+    with the_logger.contextualize(request_id=request_id):
+        valid_keys = dict(inspect.signature(client.chat.completions.create).parameters).keys()
+
+        
+        if isinstance(prompt, dict):
+            messages = history + [prompt]
+        else:
+            messages = history + [dict(role=role, content=prompt)]
+        if system:
+            if support_system(model):
+                messages = [dict(role="system", content=system)] + messages
+            else:
+                the_logger.warning(f"{model} not support system message, system argument will not work")
+
+        detail_msgs = []
+        for idx, item in enumerate(messages):
+            detail_msgs.append(f"[{idx+1}].{item['role']}:{item['content']}")
+        the_logger.debug("\n"+"\n".join(detail_msgs))
+
+        tools = copy.copy(tools)
+
+            
+        if not do_search:
+            close_search_tool = {'type': 'web_search', 'web_search': {'enable': False, 'search_query': search_query}}
+            tools.append(close_search_tool)
+            # the_logger.debug(f"adding close search tool")
+            
+        kwargs = {k: v for k, v in kwargs.items() if k in valid_keys}
+        # 处理temperature=0的特殊情况
+        if kwargs.get("temperature") == 0:
+            kwargs.pop("temperature")
+            kwargs["do_sample"]=False
+        
+
+        api_inputs = dict(model=model,
+            messages=messages,
+            tools=tools,
+            stream=stream,
+            **kwargs)
+        the_logger.debug(f"api_inputs:\n{jdumps(api_inputs)}")
+        
+
+        
+        if return_origin:
+            resp =  client.chat.completions.create(
+                **api_inputs
+            )
+            logger.info(f"api origin resp:{resp}")
+            return resp
+
+        api_inputs.update(stream=True)
+        response = client.chat.completions.create(
             **api_inputs
         )
+        # usage = response.usage
+        # the_logger.debug(f"token usage: {usage}")
 
-    api_inputs.update(stream=True)
-    response = client.chat.completions.create(
-        **api_inputs
-    )
-    # usage = response.usage
-    # the_logger.debug(f"token usage: {usage}")
+        tool_call, resp_gen = resp2generator_v4(response, logger=the_logger, request_id=request_id)
 
-    tool_call, resp_gen = resp2generator_v4(response, logger=the_logger)
-
-    if not stream:
-        resp_gen = "".join(resp_gen)
-
-    if return_tool_call:
-        return tool_call, resp_gen
-    return resp_gen
+        if not stream:
+            resp_gen = "".join(resp_gen)
+        if return_tool_call:
+            return tool_call, resp_gen
+        
+        return resp_gen
 
 
 def call_llm_api(*args, **kwargs):

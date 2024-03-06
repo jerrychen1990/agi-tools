@@ -15,5 +15,5 @@ from agit.backend.zhipuai_bk import call_llm_api
 class TestBackend(TestCase):
     def test_zhipu_backend(self):
         prompt = "你好"
-        resp = call_llm_api(prompt=prompt)
+        resp = call_llm_api(prompt=prompt, model="glm-3-turbo")
         print(resp)

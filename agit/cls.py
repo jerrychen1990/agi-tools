@@ -7,7 +7,7 @@
 '''
 
 
-from typing import List, Tuple
+from typing import Tuple
 
 from cachetools import LRUCache, cached
 from tqdm import tqdm

@@ -6,32 +6,36 @@
 @Contact :   jerrychen1990@gmail.com
 '''
 import os
+from loguru import logger
+from snippets.logs import LoguruFormat
+from snippets import print_info
 
-__version__ = "0.1.0"
-AGIT_ENV = os.environ.get("AGIT_ENV", "local")
-AGIT_PROJECT_HOME = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
-AGIT_DATA_HOME = os.environ.get("AGIT_DATA_HOME", AGIT_PROJECT_HOME)
+AGIT_ENV = os.environ.get("AGIT_ENV", "dev")
+HOME = os.environ["HOME"]
+AGIT_HOME = os.environ.get("AGIT_HOME", os.path.join(HOME, ".agit"))
+
+AGIT_LOG_HOME = os.path.join(AGIT_HOME, "logs")
+os.makedirs(AGIT_LOG_HOME, exist_ok=True)
+
+def init_log():
+    logger.remove()
+    level = "DEBUG" if AGIT_ENV == "dev" else "INFO"
+    fmt = LoguruFormat.DETAIL if AGIT_ENV == "dev" else LoguruFormat.SIMPLE
+    
+    # logger.add(sys.stdout, colorize=True, format=fmt, level=level)
+    # detail_log_path = os.path.join(LOG_DIR, "detail.log")
+    # logger.add(detail_log_path, rotation="00:00", retention="7 days", enqueue=True, backtrace=True, level="DEBUG")
+    # output_log_path = os.path.join(LOG_DIR, "output.log")
+    # logger.add(output_log_path, rotation="00:00", retention="30 days", enqueue=True, backtrace=True, level="INFO")
+
+    # logger.add(os.path.join(AGIT_LOG_HOME,"zhipuai_bk.log"), retention="365 days", rotation=" 1day", level="INFO", filter=__name__, format=LoguruFormat.SIMPLE) 
 
 
-AGIT_TEMP_DIR = os.path.join(AGIT_DATA_HOME, "temp")
-AGIT_KB_DIR = os.path.join(AGIT_DATA_HOME, "kb")
-AGIT_CONFIG_DIR = os.path.join(AGIT_DATA_HOME, "config")
 
-AGIT_LOG_HOME = os.path.join(AGIT_DATA_HOME, "/tmp/logs")
-
-
-assistant_default_prompt_template = '''你是一个知识渊博、风趣幽默的人工智能小助手
-你回答问题的时候可以参考reference标志的信息
-reference
-```
-{{reference}}
-```
-问题:
-{{message}}'''
-
-LLM_MODELS = [
-    "chatglm_lite",
-    "chatglm_std",
-    "chatglm_pro",
-    "gpt-3.5-turbo-0301"
-]
+def show_env():
+    print_info("current AGIT env", logger)
+    logger.info(f"{AGIT_ENV=}")
+    logger.info(f"{AGIT_HOME=}")
+    logger.info(f"{AGIT_LOG_HOME=}")
+    print_info("", logger)
+show_env()
